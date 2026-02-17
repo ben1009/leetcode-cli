@@ -23,6 +23,7 @@ pub struct Problem {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
 pub struct Stat {
     pub question_id: u32,
     #[serde(deserialize_with = "string_or_bool_option")]
@@ -44,7 +45,7 @@ where
 {
     use serde::de::Error;
     use serde_json::Value;
-    
+
     let value = Value::deserialize(deserializer)?;
     match value {
         Value::String(s) => Ok(Some(s)),
@@ -148,19 +149,22 @@ pub struct Argument {
 
 impl ProblemDetail {
     pub fn get_rust_snippet(&self) -> Option<String> {
-        self.code_snippets.as_ref()?.iter()
+        self.code_snippets
+            .as_ref()?
+            .iter()
             .find(|s| s.lang_slug == "rust")
             .map(|s| s.code.clone())
     }
 
     pub fn parse_metadata(&self) -> Option<ProblemMetadata> {
-        self.meta_data.as_ref()
+        self.meta_data
+            .as_ref()
             .and_then(|m| serde_json::from_str(m).ok())
     }
 
     pub fn parse_test_cases(&self) -> Vec<TestCase> {
         let mut test_cases = Vec::new();
-        
+
         if let Some(ref examples) = self.example_testcases {
             for line in examples.lines() {
                 // Parse input and expected output from example
