@@ -20,6 +20,7 @@ pub struct LeetCodeClient {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct SubmissionResult {
     pub status_code: i32,
     pub status_msg: String,
@@ -338,6 +339,7 @@ impl LeetCodeClient {
             .join("\n")
     }
 
+    #[allow(dead_code)]
     pub async fn check_solution_status(&self, submission_id: i64) -> Result<SubmissionResult> {
         let check_url = format!(
             "https://leetcode.com/submissions/detail/{}/check/",
@@ -356,6 +358,7 @@ impl LeetCodeClient {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct SubmitResponse {
     #[serde(rename = "submission_id")]
     submission_id: i64,

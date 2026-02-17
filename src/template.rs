@@ -47,12 +47,12 @@ impl<'a> CodeTemplate<'a> {
             "// URL: https://leetcode.com/problems/{}/\n",
             self.problem.title_slug
         ));
-        template.push_str("\n");
+        template.push('\n');
 
         // Add standard Rust boilerplate
         template.push_str("// Time Complexity: O()\n");
         template.push_str("// Space Complexity: O()\n");
-        template.push_str("\n");
+        template.push('\n');
 
         // Add the code snippet from LeetCode
         if let Some(ref snippet) = self.problem.get_rust_snippet() {
@@ -68,7 +68,7 @@ impl<'a> CodeTemplate<'a> {
         }
 
         // Add main function for local testing
-        template.push_str("\n");
+        template.push('\n');
         template.push_str("fn main() {\n");
         template.push_str("    // Local testing\n");
         template.push_str("    let sol = Solution;\n");
@@ -76,7 +76,7 @@ impl<'a> CodeTemplate<'a> {
         template.push_str("}\n");
 
         // Add test module
-        template.push_str("\n");
+        template.push('\n');
         template.push_str("#[cfg(test)]\n");
         template.push_str("mod tests {\n");
         template.push_str("    use super::*;\n\n");
@@ -84,12 +84,12 @@ impl<'a> CodeTemplate<'a> {
         // Add test cases from examples
         let test_cases = self.problem.parse_test_cases();
         for (i, tc) in test_cases.iter().enumerate() {
-            template.push_str(&format!("    #[test]\n"));
+            template.push_str("    #[test]\n");
             template.push_str(&format!("    fn test_case_{}() {{\n", i + 1));
             template.push_str(&format!("        // Input: {}\n", tc.input));
             template.push_str(&format!("        // Expected: {}\n", tc.expected));
-            template.push_str(&format!("        // TODO: Add test implementation\n"));
-            template.push_str(&format!("    }}\n\n"));
+            template.push_str("        // TODO: Add test implementation\n");
+            template.push_str("    }\n\n");
         }
 
         if test_cases.is_empty() {
@@ -131,7 +131,7 @@ impl<'a> CodeTemplate<'a> {
         // Add constraints if available
         desc.push_str("## Constraints\n\n");
         desc.push_str("* TODO: Add constraints from problem description\n");
-        desc.push_str("\n");
+        desc.push('\n');
 
         // Add topic tags
         if let Some(ref tags) = self.problem.topic_tags {
@@ -139,7 +139,10 @@ impl<'a> CodeTemplate<'a> {
             for tag in tags {
                 desc.push_str(&format!("- {}\n", tag.name));
             }
-            desc.push_str("\n");
+            desc.push_str(
+                "
+            \n",
+            );
         }
 
         // Add hints if available
@@ -215,6 +218,7 @@ edition = "2021"
         )
     }
 
+    #[allow(dead_code)]
     pub fn get_default_rust_template(&self) -> String {
         r#"// Default Rust template for LeetCode
 // Use this when no snippet is available from LeetCode

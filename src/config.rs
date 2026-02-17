@@ -36,20 +36,24 @@ impl Config {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn is_authenticated(&self) -> bool {
         self.session_cookie.is_some() && self.csrf_token.is_some()
     }
 
+    #[allow(dead_code)]
     pub fn get_workspace(&self) -> PathBuf {
         self.workspace_path
             .clone()
             .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
     }
 
+    #[allow(dead_code)]
     pub fn set_workspace(&mut self, path: PathBuf) {
         self.workspace_path = Some(path);
     }
 
+    #[allow(dead_code)]
     pub fn get_editor(&self) -> String {
         self.editor
             .clone()
@@ -67,12 +71,14 @@ impl Config {
 }
 
 // Helper function to get config file path
+#[allow(dead_code)]
 pub fn get_config_path() -> Result<PathBuf> {
     let config_dir = confy::get_configuration_file_path(APP_NAME, None)?;
     Ok(config_dir)
 }
 
 // Helper function to reset config
+#[allow(dead_code)]
 pub fn reset_config() -> Result<()> {
     let config = Config::default();
     config.save()?;

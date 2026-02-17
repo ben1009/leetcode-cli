@@ -227,7 +227,6 @@ async fn submit_solution(client: &LeetCodeClient, id: u32, file: Option<PathBuf>
     } else {
         // Try to find the solution file automatically
         // First, try new structure: src/lib.rs
-        let pattern = format!("{:04}_*", id);
         let entries: Vec<_> = std::fs::read_dir(".")?
             .filter_map(|e| e.ok())
             .filter(|e| {

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ProblemList {
     pub user_name: String,
     pub num_solved: i32,
@@ -12,6 +13,7 @@ pub struct ProblemList {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct Problem {
     pub stat: Stat,
     pub difficulty: Difficulty,
@@ -24,6 +26,7 @@ pub struct Problem {
 
 #[derive(Debug, Clone, Deserialize)]
 #[allow(non_snake_case)]
+#[allow(dead_code)]
 pub struct Stat {
     pub question_id: u32,
     #[serde(deserialize_with = "string_or_bool_option")]
@@ -141,12 +144,14 @@ pub struct TestConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[allow(dead_code)]
 pub struct Argument {
     #[serde(rename = "type")]
     pub arg_type: String,
     pub name: String,
 }
 
+#[allow(dead_code)]
 impl ProblemDetail {
     pub fn get_rust_snippet(&self) -> Option<String> {
         self.code_snippets

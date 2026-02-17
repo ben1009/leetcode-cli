@@ -5,6 +5,7 @@ use std::process::Command;
 
 pub struct TestRunner {
     problem_id: u32,
+    #[allow(dead_code)]
     test_file: Option<PathBuf>,
     problem_dir: PathBuf,
 }
@@ -30,12 +31,11 @@ impl TestRunner {
             let file_name = entry.file_name();
             let name = file_name.to_string_lossy();
 
-            if name.starts_with(&format!("{:04}_", problem_id))
-                || name.starts_with(&format!("{}_", problem_id))
+            if (name.starts_with(&format!("{:04}_", problem_id))
+                || name.starts_with(&format!("{}_", problem_id)))
+                && entry.file_type()?.is_dir()
             {
-                if entry.file_type()?.is_dir() {
-                    return Ok(entry.path());
-                }
+                return Ok(entry.path());
             }
         }
 
@@ -205,6 +205,7 @@ edition = "2021"
         }
     }
 
+    #[allow(dead_code)]
     pub fn run_custom_tests(&self, test_file: &Path) -> Result<()> {
         println!(
             "{}",
@@ -246,6 +247,7 @@ edition = "2021"
     }
 }
 
+#[allow(dead_code)]
 // Helper function to create a simple test runner script
 pub fn create_test_script(problem_dir: &Path) -> Result<()> {
     let script_content = r#"#!/bin/bash
@@ -290,6 +292,7 @@ fi
     Ok(())
 }
 
+#[allow(dead_code)]
 // Create a simple Cargo.toml for standalone problem directories
 pub fn create_cargo_toml(problem_dir: &Path, problem_name: &str) -> Result<()> {
     let cargo_toml = format!(

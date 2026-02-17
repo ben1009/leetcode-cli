@@ -2,13 +2,13 @@
 
 ## Fix Lints
 
-- [ ] Fix all clippy warnings
-- [ ] Add `#![warn(clippy::all)]` to main.rs
-- [ ] Run `cargo clippy -- -D warnings` in CI
-- [ ] Fix unused imports
-- [ ] Fix unused variables
-- [ ] Fix redundant clones
-- [ ] Fix needless borrows
+- [x] Fix all clippy warnings
+- [x] Add `#![warn(clippy::all)]` to main.rs
+- [x] Run `cargo clippy -- -D warnings` in CI
+- [x] Fix unused imports
+- [x] Fix unused variables
+- [x] Fix redundant clones
+- [x] Fix needless borrows
 
 ## Add GitHub Actions
 
