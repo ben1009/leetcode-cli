@@ -1,7 +1,8 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::*;
-use std::path::PathBuf;
 
 mod api;
 mod config;

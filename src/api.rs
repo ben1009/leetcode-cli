@@ -1,12 +1,14 @@
-use anyhow::{anyhow, Result};
-use rand::seq::SliceRandom;
-use reqwest::{header, Client};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
-use crate::config::Config;
-use crate::problem::{Problem, ProblemDetail, ProblemList};
+use anyhow::{Result, anyhow};
+use rand::seq::SliceRandom;
+use reqwest::{Client, header};
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    config::Config,
+    problem::{Problem, ProblemDetail, ProblemList},
+};
 
 const LEETCODE_API_URL: &str = "https://leetcode.com/api/problems/all/";
 const LEETCODE_GRAPHQL_URL: &str = "https://leetcode.com/graphql";
