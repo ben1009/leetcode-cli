@@ -1,7 +1,10 @@
-use anyhow::{anyhow, Result};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
+
+use anyhow::{Result, anyhow};
 use colored::*;
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
 pub struct TestRunner {
     problem_id: u32,
@@ -324,9 +327,11 @@ edition = "2021"
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::fs;
+
     use tempfile::TempDir;
+
+    use super::*;
 
     #[test]
     fn test_test_runner_creation() {
