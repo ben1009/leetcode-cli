@@ -12,13 +12,13 @@
 
 ## Add GitHub Actions
 
-- [ ] Create `.github/workflows/ci.yml`
-- [ ] Add build job (stable, beta, nightly)
-- [ ] Add test job
-- [ ] Add clippy check
-- [ ] Add rustfmt check
-- [ ] Add release workflow
-- [ ] Add dependabot for dependency updates
+- [x] Create `.github/workflows/ci.yml`
+- [x] Add build job (stable, beta, nightly)
+- [x] Add test job
+- [x] Add clippy check
+- [x] Add rustfmt check
+- [x] Add release workflow
+- [x] Add dependabot for dependency updates
 
 ## CI Workflow Template
 
