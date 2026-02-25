@@ -78,21 +78,21 @@ cargo nextest run
 cargo llvm-cov nextest --html
 ```
 
-### Code Quality Commands (via cargo-make)
+### Code Quality Commands (via ./dev script)
 
 ```bash
 # Run all checks
-cargo make check
+./dev check
 
 # Individual checks
-makers check-fmt        # Format check
-makers check-clippy     # Lint check (denies warnings)
-makers check-typos      # Spell check
-makers check-machete    # Check for unused dependencies
-makers check-dep-sort   # Check dependency sorting
-makers test             # Run unit tests with nextest
-makers test-cov         # Run tests with coverage
-makers clean            # Clean build artifacts
+./dev check-fmt        # Format check
+./dev check-clippy     # Lint check (denies warnings)
+./dev check-typos      # Spell check
+./dev check-machete    # Check for unused dependencies
+./dev check-dep-sort   # Check dependency sorting
+./dev test             # Run unit tests with nextest
+./dev test-cov         # Run tests with coverage
+./dev clean            # Clean build artifacts
 ```
 
 ### Installation
@@ -257,10 +257,10 @@ All PRs must pass:
 
 1. **Setup**: Ensure Rust nightly is installed (`rust-toolchain.toml` handles this)
 2. **Code**: Make changes following Rust standards
-3. **Format**: Run `makers check-fmt`
-4. **Lint**: Run `makers check-clippy`
-5. **Test**: Run `makers test`
-6. **Check**: Run `makers check` to verify all checks pass
+3. **Format**: Run `./dev check-fmt`
+4. **Lint**: Run `./dev check-clippy`
+5. **Test**: Run `./dev test`
+6. **Check**: Run `./dev check` to verify all checks pass
 
 ## Key Dependencies
 
@@ -284,4 +284,4 @@ All PRs must pass:
 3. **Test with nextest**: Prefer `cargo nextest run` over `cargo test`
 4. **Format on save**: Use the provided `rustfmt.toml` configuration
 5. **Module structure**: Keep modules focused; main.rs is for CLI handling only
-6. **Problem templates**: When modifying templates in `template.rs`, regenerate the corresponding examples in the `examples/` directory.
+6. **Problem templates**: When modifying templates, update both template.rs and examples/
