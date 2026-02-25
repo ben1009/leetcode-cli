@@ -72,7 +72,7 @@ leetcode-cli/
 
 7. **Build Release**
    ```bash
-   cargo build --release
+   ./dev release
    ```
 
 ## Code Standards
