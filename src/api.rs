@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path};
 
 use anyhow::{Result, anyhow};
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
 
@@ -151,7 +151,7 @@ impl LeetCodeClient {
         filtered.retain(|p| !p.paid_only);
 
         // Pick random problem
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Ok(filtered.choose(&mut rng).cloned().cloned())
     }
 
