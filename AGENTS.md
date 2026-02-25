@@ -82,7 +82,7 @@ cargo llvm-cov nextest --html
 
 ```bash
 # Run all checks
-makers check
+cargo make check
 
 # Individual checks
 makers check-fmt        # Format check
