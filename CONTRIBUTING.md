@@ -15,10 +15,10 @@ Thank you for your interest in contributing to LeetCode CLI!
    cd leetcode-cli
    ```
 
-3. **Install Development Dependencies**
-   ```bash
-   make dev-setup
-   ```
+3. **Development Dependencies**
+   Required development dependencies like `cargo-nextest` are installed automatically
+   by the `./dev` script when needed (e.g. when running `./dev test`).
+   No manual installation steps are required.
 
 ## Project Structure
 
@@ -51,30 +51,36 @@ leetcode-cli/
 
 3. **Format Code**
    ```bash
-   make fmt
+   ./dev check-fmt
    ```
 
 4. **Run Linter**
    ```bash
-   make lint
+   ./dev check-clippy
    ```
 
 5. **Run Tests**
    ```bash
-   make test
+   ./dev test
    ```
 
-6. **Build Release**
+6. **Run All Checks**
    ```bash
-   make release
+   ./dev check
+   ```
+   > **Note:** This command may modify files to fix formatting issues.
+
+7. **Build Release**
+   ```bash
+   cargo build --release
    ```
 
 ## Code Standards
 
 ### Rust Style
 
-- Use `cargo fmt` to format code
-- Use `cargo clippy` to check code
+- Use `./dev check-fmt` to format code
+- Use `./dev check-clippy` to check code
 - Follow [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
 
 ### Error Handling
