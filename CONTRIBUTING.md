@@ -15,11 +15,10 @@ Thank you for your interest in contributing to LeetCode CLI!
    cd leetcode-cli
    ```
 
-3. **Install Development Dependencies**
-   ```bash
-   ./dev install-nextest
-   ./dev install-llvm-cov
-   ```
+3. **Development Dependencies**
+   Required development dependencies like `cargo-nextest` are installed automatically
+   by the `./dev` script when needed (e.g. when running `./dev test`).
+   No manual installation steps are required.
 
 ## Project Structure
 
@@ -69,10 +68,11 @@ leetcode-cli/
    ```bash
    ./dev check
    ```
+   > **Note:** This command may modify files to fix formatting issues.
 
 7. **Build Release**
    ```bash
-   ./dev release
+   cargo build --release
    ```
 
 ## Code Standards
