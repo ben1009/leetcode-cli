@@ -284,4 +284,4 @@ All PRs must pass:
 3. **Test with nextest**: Prefer `cargo nextest run` over `cargo test`
 4. **Format on save**: Use the provided `rustfmt.toml` configuration
 5. **Module structure**: Keep modules focused; main.rs is for CLI handling only
-6. **Problem templates**: When modifying templates, update both template.rs and examples/
+6. **Problem templates**: When modifying templates in `template.rs`, regenerate the corresponding examples in the `examples/` directory.
