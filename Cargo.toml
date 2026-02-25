@@ -10,7 +10,7 @@ license = "MIT"
 anyhow = "1.0"
 clap = { version = "4.0", features = ["derive"] }
 colored = "2.0"
-confy = "0.5"
+confy = "2.0"
 console = "0.16"
 cookie = "0.17"
 handlebars = "6.4"
