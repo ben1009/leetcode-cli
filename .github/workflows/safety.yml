@@ -65,9 +65,7 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: cargo miri test
-        run: cargo +${{ env.NIGHTLY }} miri test
-        env:
-          MIRIFLAGS: "-Zmiri-disable-isolation -Zmiri-permissive-provenance -Zmiri-ignore-leaks"
+        run: MIRIFLAGS="-Zmiri-disable-isolation -Zmiri-permissive-provenance -Zmiri-ignore-leaks" cargo +${{ env.NIGHTLY }} miri test
   # loom:
   #   runs-on: ubuntu-latest
   #   steps:
