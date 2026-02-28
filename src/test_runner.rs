@@ -334,6 +334,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[serial_test::serial]
     fn test_test_runner_creation() {
         let temp_dir = TempDir::new().unwrap();
         let problem_dir = temp_dir.path().join("0001_two_sum");
@@ -351,6 +352,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_find_problem_directory_with_prefix() {
         let temp_dir = TempDir::new().unwrap();
         let problem_dir = temp_dir.path().join("0001_two_sum");
@@ -371,6 +373,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_find_problem_directory_cargo_structure() {
         let temp_dir = TempDir::new().unwrap();
         let src_dir = temp_dir.path().join("src");
@@ -392,6 +395,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_find_problem_directory_not_found() {
         let temp_dir = TempDir::new().unwrap();
 
@@ -405,6 +409,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_format_test_output_ok() {
         let temp_dir = TempDir::new().unwrap();
         let problem_dir = temp_dir.path().join("0001_test");
@@ -424,6 +429,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_format_test_output_failed() {
         let temp_dir = TempDir::new().unwrap();
         let problem_dir = temp_dir.path().join("0001_test");
@@ -442,6 +448,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_run_custom_tests() {
         let temp_dir = TempDir::new().unwrap();
         let problem_dir = temp_dir.path().join("0001_test");
