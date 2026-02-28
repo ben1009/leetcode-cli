@@ -228,7 +228,7 @@ impl LeetCodeClient {
         let code = tokio::fs::read_to_string(solution_file).await?;
 
         // Extract just the solution code (remove main function and tests if present)
-        let cleaned_code = self.extract_solution_code(&code);
+        let cleaned_code = Self::extract_solution_code(&code);
 
         let payload = serde_json::json!({
             "lang": "rust",
@@ -294,7 +294,7 @@ impl LeetCodeClient {
         Err(anyhow!("Timeout waiting for submission result"))
     }
 
-    fn extract_solution_code(&self, code: &str) -> String {
+    pub(crate) fn extract_solution_code(code: &str) -> String {
         // Simple extraction - find the impl Solution block
         let lines: Vec<&str> = code.lines().collect();
         let mut result = Vec::new();
@@ -833,7 +833,7 @@ mod tests {
 }"#;
 
         // Create a minimal client for testing
-        let extracted = extract_solution_code_for_test(code);
+        let extracted = LeetCodeClient::extract_solution_code(code);
         assert!(extracted.contains("impl Solution"));
         assert!(extracted.contains("pub fn two_sum"));
         assert!(!extracted.contains("fn main()"));
@@ -852,7 +852,7 @@ fn main() {
 mod tests {}
 "#;
 
-        let extracted = extract_solution_code_for_test(code);
+        let extracted = LeetCodeClient::extract_solution_code(code);
         assert!(extracted.contains("fn helper()"));
         assert!(!extracted.contains("fn main()"));
     }
@@ -874,52 +874,9 @@ mod tests {}
 
 fn main() {}"#;
 
-        let extracted = extract_solution_code_for_test(code);
+        let extracted = LeetCodeClient::extract_solution_code(code);
         assert!(extracted.contains("impl Solution"));
         assert!(extracted.contains("match Some(1)"));
         assert!(!extracted.contains("fn main()"));
-    }
-
-    // Helper function that mimics the extract_solution_code logic for testing
-    fn extract_solution_code_for_test(code: &str) -> String {
-        let lines: Vec<&str> = code.lines().collect();
-        let mut result = Vec::new();
-        let mut in_solution = false;
-        let mut brace_count = 0;
-
-        for line in &lines {
-            let trimmed = line.trim();
-
-            if trimmed.starts_with("fn main()") || trimmed.starts_with("#[cfg(test)]") {
-                break;
-            }
-
-            if trimmed.contains("impl Solution") {
-                in_solution = true;
-            }
-
-            if in_solution {
-                result.push(*line);
-
-                for c in trimmed.chars() {
-                    if c == '{' {
-                        brace_count += 1;
-                    } else if c == '}' {
-                        brace_count -= 1;
-                        if brace_count == 0 {
-                            return result.join("\n");
-                        }
-                    }
-                }
-            }
-        }
-
-        code.lines()
-            .take_while(|line| {
-                let trimmed = line.trim();
-                !trimmed.starts_with("fn main()") && !trimmed.starts_with("#[cfg(test)]")
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
     }
 }
