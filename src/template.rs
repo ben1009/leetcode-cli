@@ -110,7 +110,7 @@ impl<'a> CodeTemplate<'a> {
         desc.push_str(&format!("# {}\n\n", self.problem.title));
         desc.push_str(&format!("**Difficulty:** {}  \n", self.problem.difficulty));
         desc.push_str(&format!(
-            "**URL:** https://leetcode/problems/{}  \n\n",
+            "**URL:** https://leetcode.com/problems/{}  \n\n",
             self.problem.title_slug
         ));
 
@@ -314,8 +314,9 @@ mod tests {
         assert!(rust_code.contains("Two Sum"));
         assert!(rust_code.contains("impl Solution"));
         assert!(rust_code.contains("#[cfg(test)]"));
-        // Note: parse_test_cases has a bug, so we get test_example instead of test_case_N
-        assert!(rust_code.contains("test_example"));
+        // Test cases are now properly parsed
+        assert!(rust_code.contains("test_case_1"));
+        assert!(rust_code.contains("test_case_2"));
     }
 
     #[test]
@@ -371,8 +372,9 @@ mod tests {
         let content = fs::read_to_string(&output_path).unwrap();
         assert!(content.contains("\"problem_id\": \"1\""));
         assert!(content.contains("\"problem_title\": \"Two Sum\""));
-        // Note: parse_test_cases has a bug, so test_cases array is empty
-        assert!(content.contains("\"test_cases\": []"));
+        // Test cases are now properly parsed
+        assert!(content.contains("\"input\": \"2,7,11,15\""));
+        assert!(content.contains("\"expected\": \"9\""));
     }
 
     #[test]

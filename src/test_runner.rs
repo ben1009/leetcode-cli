@@ -462,11 +462,18 @@ mod tests {
         let original_dir = std::env::current_dir().unwrap();
         std::env::set_current_dir(&temp_dir).unwrap();
 
+        // Ensure we restore the directory even if the test panics
+        struct DirGuard(PathBuf);
+        impl Drop for DirGuard {
+            fn drop(&mut self) {
+                let _ = std::env::set_current_dir(&self.0);
+            }
+        }
+        let _guard = DirGuard(original_dir);
+
         let runner = TestRunner::new(1, None).unwrap();
         let result = runner.run_custom_tests(&test_file);
         assert!(result.is_ok());
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]

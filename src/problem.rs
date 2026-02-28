@@ -75,6 +75,54 @@ pub struct Difficulty {
     pub level: i32,
 }
 
+/// Difficulty levels for LeetCode problems
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DifficultyLevel {
+    Easy = 1,
+    Medium = 2,
+    Hard = 3,
+}
+
+impl DifficultyLevel {
+    /// Parse difficulty from string (case-insensitive)
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "easy" => Some(Self::Easy),
+            "medium" => Some(Self::Medium),
+            "hard" => Some(Self::Hard),
+            _ => None,
+        }
+    }
+
+    /// Get the numeric level (1-3)
+    pub fn level(self) -> i32 {
+        self as i32
+    }
+
+    /// Get the display name
+    #[allow(dead_code)]
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Easy => "Easy",
+            Self::Medium => "Medium",
+            Self::Hard => "Hard",
+        }
+    }
+}
+
+impl TryFrom<i32> for DifficultyLevel {
+    type Error = ();
+
+    fn try_from(level: i32) -> Result<Self, Self::Error> {
+        match level {
+            1 => Ok(Self::Easy),
+            2 => Ok(Self::Medium),
+            3 => Ok(Self::Hard),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ProblemDetail {
     #[serde(rename = "questionId")]
@@ -171,15 +219,16 @@ impl ProblemDetail {
         let mut test_cases = Vec::new();
 
         if let Some(ref examples) = self.example_testcases {
-            for line in examples.lines() {
-                // Parse input and expected output from example
-                // Format varies by problem
-                let parts: Vec<&str> = line.split('\n').collect();
-                if parts.len() >= 2 {
+            // Parse test cases from examples
+            // Format: input\nexpected\n[explanation] separated by blank lines
+            let blocks: Vec<&str> = examples.split("\n\n").collect();
+            for block in blocks {
+                let lines: Vec<&str> = block.lines().collect();
+                if lines.len() >= 2 {
                     test_cases.push(TestCase {
-                        input: parts[0].to_string(),
-                        expected: parts[1].to_string(),
-                        explanation: parts.get(2).map(|s| s.to_string()),
+                        input: lines[0].to_string(),
+                        expected: lines[1].to_string(),
+                        explanation: lines.get(2).map(|s| s.to_string()),
                     });
                 }
             }
@@ -402,10 +451,7 @@ mod tests {
     }
 
     #[test]
-    fn test_problem_detail_parse_test_cases_empty() {
-        // Note: parse_test_cases has a bug - it splits by lines then tries to split
-        // each line by '\n' again, which never produces len >= 2.
-        // This test documents current behavior.
+    fn test_problem_detail_parse_test_cases() {
         let detail = ProblemDetail {
             question_id: "1".to_string(),
             title: "Two Sum".to_string(),
@@ -420,9 +466,12 @@ mod tests {
             topic_tags: None,
         };
 
-        // Current buggy behavior returns empty vec
         let test_cases = detail.parse_test_cases();
-        assert!(test_cases.is_empty());
+        assert_eq!(test_cases.len(), 2);
+        assert_eq!(test_cases[0].input, "2,7,11,15");
+        assert_eq!(test_cases[0].expected, "9");
+        assert_eq!(test_cases[1].input, "3,2,4");
+        assert_eq!(test_cases[1].expected, "6");
     }
 
     #[test]

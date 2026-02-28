@@ -27,12 +27,17 @@
 
 ## Bug Fixes
 
-- [ ] Fix URL typo in `template.rs:113`: `https://leetcode/problems/` → `https://leetcode.com/problems/`
+- [x] Fix URL typo in `template.rs:113`: `https://leetcode/problems/` → `https://leetcode.com/problems/`
 
 ## Code Duplication
 
-- [ ] Centralize difficulty mapping: Use a shared enum/struct instead of string matching in `api.rs` and `main.rs`
-- [ ] Extract input prompt helper for stdin reading pattern
+- [x] Centralize difficulty mapping: Use a shared enum/struct instead of string matching in `api.rs` and `main.rs`
+  - Added `DifficultyLevel` enum with `Easy`, `Medium`, `Hard` variants
+  - Added `from_str()`, `level()`, `name()` methods
+  - Updated `api.rs` and `main.rs` to use the new enum
+- [x] Extract input prompt helper for stdin reading pattern
+  - Added `prompt_input()` helper function
+  - Added `prompt_confirm()` helper function for Y/n prompts
 
 ## Unimplemented Features
 
@@ -55,8 +60,10 @@
   - [x] `template.rs` - **95.61%** - File writing, individual generators
   - [x] `test_runner.rs` - **71.12%** - Directory finding, output formatting, custom tests
   - [x] `main.rs` - Command variants
-- [ ] Fix flaky `test_test_runner_creation` that changes working directory
-- [ ] Fix `parse_test_cases()` bug - splits by lines then tries to split by newlines again
+- [x] Fix flaky `test_run_custom_tests` that changes working directory
+  - Added `DirGuard` struct to ensure directory is restored on panic
+- [x] Fix `parse_test_cases()` bug - splits by lines then tries to split by newlines again
+  - Now correctly splits by blank lines (`\n\n`) to separate test cases
 
 **Test Count:** 57 tests (was 5)
 

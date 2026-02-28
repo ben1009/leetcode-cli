@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
-    problem::{Problem, ProblemDetail, ProblemList},
+    problem::{DifficultyLevel, Problem, ProblemDetail, ProblemList},
 };
 
 const LEETCODE_API_URL: &str = "https://leetcode.com/api/problems/all/";
@@ -142,14 +142,8 @@ impl LeetCodeClient {
 
         // Filter by difficulty
         if let Some(diff) = difficulty {
-            let level = match diff.to_lowercase().as_str() {
-                "easy" => 1,
-                "medium" => 2,
-                "hard" => 3,
-                _ => 0,
-            };
-            if level > 0 {
-                filtered.retain(|p| p.difficulty.level == level);
+            if let Some(level) = DifficultyLevel::from_str(diff) {
+                filtered.retain(|p| p.difficulty.level == level.level());
             }
         }
 

@@ -12,7 +12,7 @@ mod test_runner;
 
 use api::LeetCodeClient;
 use config::Config;
-use problem::Problem;
+use problem::{DifficultyLevel, Problem};
 use template::CodeTemplate;
 use test_runner::TestRunner;
 
@@ -145,11 +145,7 @@ async fn pick_problem(
         print_problem_summary(&p);
 
         // Ask if user wants to download
-        println!("\n{}", "Download this problem? [Y/n]".yellow());
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-
-        if input.trim().to_lowercase() != "n" {
+        if prompt_confirm("\nDownload this problem? [Y/n]")? {
             download_problem(client, p.stat.question_id, PathBuf::from(".")).await?;
         }
     } else {
@@ -274,19 +270,13 @@ async fn login(session: Option<String>, csrf: Option<String>) -> Result<()> {
     if let Some(s) = session {
         config.session_cookie = Some(s);
     } else {
-        println!("{}", "Please enter your LeetCode session cookie:".cyan());
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        config.session_cookie = Some(input.trim().to_string());
+        config.session_cookie = Some(prompt_input("Please enter your LeetCode session cookie:")?);
     }
 
     if let Some(c) = csrf {
         config.csrf_token = Some(c);
     } else {
-        println!("{}", "Please enter your CSRF token:".cyan());
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        config.csrf_token = Some(input.trim().to_string());
+        config.csrf_token = Some(prompt_input("Please enter your CSRF token:")?);
     }
 
     config.save()?;
@@ -312,11 +302,11 @@ async fn list_problems(
     println!("{}", "-".repeat(80));
 
     for problem in problems {
-        let diff_str = match problem.difficulty.level {
-            1 => "Easy".green(),
-            2 => "Medium".yellow(),
-            3 => "Hard".red(),
-            _ => "Unknown".normal(),
+        let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
+            Ok(DifficultyLevel::Easy) => "Easy".green(),
+            Ok(DifficultyLevel::Medium) => "Medium".yellow(),
+            Ok(DifficultyLevel::Hard) => "Hard".red(),
+            Err(_) => "Unknown".normal(),
         };
 
         let status_str = if problem.status == Some("ac".to_string()) {
@@ -328,14 +318,10 @@ async fn list_problems(
         };
 
         if let Some(ref diff_filter) = difficulty {
-            let level = match diff_filter.to_lowercase().as_str() {
-                "easy" => 1,
-                "medium" => 2,
-                "hard" => 3,
-                _ => 0,
-            };
-            if problem.difficulty.level != level {
-                continue;
+            if let Some(level) = DifficultyLevel::from_str(diff_filter) {
+                if problem.difficulty.level != level.level() {
+                    continue;
+                }
             }
         }
 
@@ -387,11 +373,11 @@ async fn show_problem(client: &LeetCodeClient, id: u32) -> Result<()> {
     );
     println!("{}", "═".repeat(80).cyan());
 
-    let diff_str = match problem.difficulty.level {
-        1 => "Easy".green(),
-        2 => "Medium".yellow(),
-        3 => "Hard".red(),
-        _ => "Unknown".normal(),
+    let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
+        Ok(DifficultyLevel::Easy) => "Easy".green(),
+        Ok(DifficultyLevel::Medium) => "Medium".yellow(),
+        Ok(DifficultyLevel::Hard) => "Hard".red(),
+        Err(_) => "Unknown".normal(),
     };
     println!("{} {}", "Difficulty:".bold(), diff_str);
     println!(
@@ -428,11 +414,11 @@ fn print_problem_summary(problem: &Problem) {
     );
     println!("{}", "═".repeat(80).cyan());
 
-    let diff_str = match problem.difficulty.level {
-        1 => "Easy".green(),
-        2 => "Medium".yellow(),
-        3 => "Hard".red(),
-        _ => "Unknown".normal(),
+    let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
+        Ok(DifficultyLevel::Easy) => "Easy".green(),
+        Ok(DifficultyLevel::Medium) => "Medium".yellow(),
+        Ok(DifficultyLevel::Hard) => "Hard".red(),
+        Err(_) => "Unknown".normal(),
     };
 
     println!("{} {}", "Difficulty:".bold(), diff_str);
@@ -496,6 +482,23 @@ fn print_submission_result(result: &api::SubmissionResult) {
             println!("{} {}", "Status:".bold(), result.status_msg);
         }
     }
+}
+
+/// Prompt the user for input with a message
+fn prompt_input(message: &str) -> Result<String> {
+    println!("{}", message.cyan());
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
+}
+
+/// Prompt the user for a yes/no confirmation
+/// Returns true if the user confirms (Y/n), false if not (n)
+fn prompt_confirm(message: &str) -> Result<bool> {
+    println!("{}", message.yellow());
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_lowercase() != "n")
 }
 
 #[cfg(test)]
