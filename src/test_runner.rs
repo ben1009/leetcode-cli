@@ -362,7 +362,10 @@ mod tests {
 
         let found = TestRunner::find_problem_directory(1);
         assert!(found.is_ok());
-        assert_eq!(found.unwrap(), problem_dir);
+        // Compare canonicalized paths to handle macOS /var vs /private/var symlink
+        let found_canonical = found.unwrap().canonicalize().unwrap();
+        let expected_canonical = problem_dir.canonicalize().unwrap();
+        assert_eq!(found_canonical, expected_canonical);
 
         std::env::set_current_dir(original_dir).unwrap();
     }
