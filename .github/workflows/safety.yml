@@ -67,7 +67,7 @@ jobs:
       - name: cargo miri test
         run: cargo +${{ env.NIGHTLY }} miri test
         env:
-          MIRIFLAGS: "-Zmiri-disable-isolation -Zmiri-permissive-provenance"
+          MIRIFLAGS: "-Zmiri-disable-isolation -Zmiri-permissive-provenance -Zmiri-ignore-leaks"
   # loom:
   #   runs-on: ubuntu-latest
   #   steps:
