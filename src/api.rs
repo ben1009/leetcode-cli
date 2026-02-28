@@ -10,10 +10,6 @@ use crate::{
     problem::{DifficultyLevel, Problem, ProblemDetail, ProblemList},
 };
 
-const LEETCODE_API_URL: &str = "https://leetcode.com/api/problems/all/";
-const LEETCODE_GRAPHQL_URL: &str = "https://leetcode.com/graphql";
-const LEETCODE_SUBMIT_URL: &str = "https://leetcode.com/problems/{}/submit/";
-
 #[derive(Debug, Clone)]
 pub struct LeetCodeClient {
     client: Client,
@@ -104,11 +100,7 @@ impl LeetCodeClient {
     }
 
     async fn fetch_all_problems(&mut self) -> Result<()> {
-        let url = if self.base_url == "https://leetcode.com" {
-            LEETCODE_API_URL.to_string()
-        } else {
-            format!("{}/api/problems/all/", self.base_url)
-        };
+        let url = format!("{}/api/problems/all/", self.base_url);
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
@@ -195,12 +187,7 @@ impl LeetCodeClient {
             },
         };
 
-        let url = if self.base_url == "https://leetcode.com" {
-            LEETCODE_GRAPHQL_URL.to_string()
-        } else {
-            format!("{}/graphql", self.base_url)
-        };
-
+        let url = format!("{}/graphql", self.base_url);
         let response = self.client.post(&url).json(&query).send().await?;
 
         if !response.status().is_success() {
@@ -235,11 +222,7 @@ impl LeetCodeClient {
             .ok_or_else(|| anyhow!("Problem not found"))?;
 
         let slug = &problem.stat.question_title_slug();
-        let submit_url = if self.base_url == "https://leetcode.com" {
-            LEETCODE_SUBMIT_URL.replace("{}", slug)
-        } else {
-            format!("{}/problems/{}/submit/", self.base_url, slug)
-        };
+        let submit_url = format!("{}/problems/{}/submit/", self.base_url, slug);
 
         // Read solution file
         let code = tokio::fs::read_to_string(solution_file).await?;
@@ -270,17 +253,10 @@ impl LeetCodeClient {
     }
 
     async fn poll_submission_result(&self, submission_id: i64) -> Result<SubmissionResult> {
-        let check_url = if self.base_url == "https://leetcode.com" {
-            format!(
-                "https://leetcode.com/submissions/detail/{}/check/",
-                submission_id
-            )
-        } else {
-            format!(
-                "{}/submissions/detail/{}/check/",
-                self.base_url, submission_id
-            )
-        };
+        let check_url = format!(
+            "{}/submissions/detail/{}/check/",
+            self.base_url, submission_id
+        );
 
         #[cfg(test)]
         let max_attempts = 2;
