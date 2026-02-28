@@ -482,6 +482,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_fetch_all_problems() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -500,6 +501,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_get_problem_by_id() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -522,6 +524,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_get_random_problem() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -559,6 +562,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_get_problem_detail() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -610,6 +614,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_get_problem_detail_invalid_response() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -639,6 +644,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_submit_not_authenticated() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -667,6 +673,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_submit_success() {
         let (mock_server, mut config) = setup_mock_server().await;
         config.session_cookie = Some("test_session".to_string());
@@ -720,6 +727,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_submit_problem_not_found() {
         let (mock_server, mut config) = setup_mock_server().await;
         config.session_cookie = Some("test_session".to_string());
