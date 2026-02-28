@@ -159,6 +159,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_get_editor_from_env() {
         // Temporarily set EDITOR env var
         let original = env::var("EDITOR").ok();
