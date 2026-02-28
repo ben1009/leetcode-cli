@@ -7,18 +7,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
-    problem::{Problem, ProblemDetail, ProblemList},
+    problem::{DifficultyLevel, Problem, ProblemDetail, ProblemList},
 };
-
-const LEETCODE_API_URL: &str = "https://leetcode.com/api/problems/all/";
-const LEETCODE_GRAPHQL_URL: &str = "https://leetcode.com/graphql";
-const LEETCODE_SUBMIT_URL: &str = "https://leetcode.com/problems/{}/submit/";
 
 #[derive(Debug, Clone)]
 pub struct LeetCodeClient {
     client: Client,
     config: Config,
     problems: Vec<Problem>,
+    base_url: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -47,6 +44,11 @@ struct GraphQLQuery {
 
 impl LeetCodeClient {
     pub async fn new(config: Config) -> Result<Self> {
+        Self::new_with_base_url(config, "https://leetcode.com".to_string()).await
+    }
+
+    #[allow(dead_code)]
+    pub(crate) async fn new_with_base_url(config: Config, base_url: String) -> Result<Self> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             header::USER_AGENT,
@@ -88,6 +90,7 @@ impl LeetCodeClient {
             client,
             config,
             problems: Vec::new(),
+            base_url,
         };
 
         // Fetch all problems on initialization
@@ -97,7 +100,8 @@ impl LeetCodeClient {
     }
 
     async fn fetch_all_problems(&mut self) -> Result<()> {
-        let response = self.client.get(LEETCODE_API_URL).send().await?;
+        let url = format!("{}/api/problems/all/", self.base_url);
+        let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
             return Err(anyhow!("Failed to fetch problems: {}", response.status()));
@@ -130,14 +134,8 @@ impl LeetCodeClient {
 
         // Filter by difficulty
         if let Some(diff) = difficulty {
-            let level = match diff.to_lowercase().as_str() {
-                "easy" => 1,
-                "medium" => 2,
-                "hard" => 3,
-                _ => 0,
-            };
-            if level > 0 {
-                filtered.retain(|p| p.difficulty.level == level);
+            if let Some(level) = DifficultyLevel::from_str(diff) {
+                filtered.retain(|p| p.difficulty.level == level.level());
             }
         }
 
@@ -189,12 +187,8 @@ impl LeetCodeClient {
             },
         };
 
-        let response = self
-            .client
-            .post(LEETCODE_GRAPHQL_URL)
-            .json(&query)
-            .send()
-            .await?;
+        let url = format!("{}/graphql", self.base_url);
+        let response = self.client.post(&url).json(&query).send().await?;
 
         if !response.status().is_success() {
             return Err(anyhow!(
@@ -228,13 +222,13 @@ impl LeetCodeClient {
             .ok_or_else(|| anyhow!("Problem not found"))?;
 
         let slug = &problem.stat.question_title_slug();
-        let submit_url = LEETCODE_SUBMIT_URL.replace("{}", slug);
+        let submit_url = format!("{}/problems/{}/submit/", self.base_url, slug);
 
         // Read solution file
         let code = tokio::fs::read_to_string(solution_file).await?;
 
         // Extract just the solution code (remove main function and tests if present)
-        let cleaned_code = self.extract_solution_code(&code);
+        let cleaned_code = Self::extract_solution_code(&code);
 
         let payload = serde_json::json!({
             "lang": "rust",
@@ -260,11 +254,18 @@ impl LeetCodeClient {
 
     async fn poll_submission_result(&self, submission_id: i64) -> Result<SubmissionResult> {
         let check_url = format!(
-            "https://leetcode.com/submissions/detail/{}/check/",
-            submission_id
+            "{}/submissions/detail/{}/check/",
+            self.base_url, submission_id
         );
 
+        #[cfg(test)]
+        let max_attempts = 2;
+        #[cfg(not(test))]
         let max_attempts = 30;
+
+        #[cfg(test)]
+        let delay_secs = 0;
+        #[cfg(not(test))]
         let delay_secs = 2;
 
         for attempt in 0..max_attempts {
@@ -293,7 +294,7 @@ impl LeetCodeClient {
         Err(anyhow!("Timeout waiting for submission result"))
     }
 
-    fn extract_solution_code(&self, code: &str) -> String {
+    pub(crate) fn extract_solution_code(code: &str) -> String {
         // Simple extraction - find the impl Solution block
         let lines: Vec<&str> = code.lines().collect();
         let mut result = Vec::new();
@@ -364,4 +365,518 @@ impl LeetCodeClient {
 struct SubmitResponse {
     #[serde(rename = "submission_id")]
     submission_id: i64,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
+    };
+
+    use super::*;
+
+    fn create_test_problem_list() -> serde_json::Value {
+        serde_json::json!({
+            "user_name": "test_user",
+            "num_solved": 10,
+            "num_total": 100,
+            "ac_easy": 5,
+            "ac_medium": 3,
+            "ac_hard": 2,
+            "stat_status_pairs": [
+                {
+                    "stat": {
+                        "question_id": 1,
+                        "question__article__live": null,
+                        "question__article__slug": null,
+                        "question__title": "Two Sum",
+                        "question__title_slug": "two-sum",
+                        "question__hide": false,
+                        "total_acs": 1000000,
+                        "total_submitted": 2000000,
+                        "frontend_question_id": 1,
+                        "is_new_question": false
+                    },
+                    "difficulty": {"level": 1},
+                    "paid_only": false,
+                    "is_favor": false,
+                    "frequency": 0,
+                    "progress": 0,
+                    "status": "ac"
+                },
+                {
+                    "stat": {
+                        "question_id": 2,
+                        "question__article__live": null,
+                        "question__article__slug": null,
+                        "question__title": "Add Two Numbers",
+                        "question__title_slug": "add-two-numbers",
+                        "question__hide": false,
+                        "total_acs": 500000,
+                        "total_submitted": 1000000,
+                        "frontend_question_id": 2,
+                        "is_new_question": false
+                    },
+                    "difficulty": {"level": 2},
+                    "paid_only": false,
+                    "is_favor": false,
+                    "frequency": 0,
+                    "progress": 0,
+                    "status": null
+                },
+                {
+                    "stat": {
+                        "question_id": 3,
+                        "question__article__live": null,
+                        "question__article__slug": null,
+                        "question__title": "Hard Problem",
+                        "question__title_slug": "hard-problem",
+                        "question__hide": false,
+                        "total_acs": 100000,
+                        "total_submitted": 500000,
+                        "frontend_question_id": 3,
+                        "is_new_question": false
+                    },
+                    "difficulty": {"level": 3},
+                    "paid_only": true,
+                    "is_favor": false,
+                    "frequency": 0,
+                    "progress": 0,
+                    "status": "notac"
+                }
+            ]
+        })
+    }
+
+    async fn setup_mock_server() -> (MockServer, Config) {
+        let mock_server = MockServer::start().await;
+        let config = Config::default();
+        (mock_server, config)
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_fetch_all_problems() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri()).await;
+        assert!(client.is_ok());
+
+        let client = client.unwrap();
+        let problems = client.get_all_problems().await.unwrap();
+        assert_eq!(problems.len(), 3);
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_by_id() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let problem = client.get_problem_by_id(1).await.unwrap();
+        assert!(problem.is_some());
+        assert_eq!(problem.as_ref().unwrap().stat.question_id, 1);
+
+        let problem = client.get_problem_by_id(999).await.unwrap();
+        assert!(problem.is_none());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_random_problem() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        // Test without filters
+        let problem = client.get_random_problem(None, None).await.unwrap();
+        assert!(problem.is_some());
+
+        // Test with difficulty filter
+        let problem = client.get_random_problem(Some("easy"), None).await.unwrap();
+        assert!(problem.is_some());
+        assert_eq!(problem.as_ref().unwrap().difficulty.level, 1);
+
+        let problem = client
+            .get_random_problem(Some("medium"), None)
+            .await
+            .unwrap();
+        assert!(problem.is_some());
+
+        // Test with non-existent difficulty
+        let problem = client
+            .get_random_problem(Some("invalid"), None)
+            .await
+            .unwrap();
+        assert!(problem.is_some());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_detail() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let graphql_response = serde_json::json!({
+            "data": {
+                "question": {
+                    "questionId": "1",
+                    "title": "Two Sum",
+                    "titleSlug": "two-sum",
+                    "content": "<p>Given an array...</p>",
+                    "difficulty": "Easy",
+                    "exampleTestcases": "[2,7,11,15]\\n9",
+                    "sampleTestCase": "[2,7,11,15]\\n9",
+                    "metaData": null,
+                    "codeSnippets": [
+                        {
+                            "lang": "Rust",
+                            "langSlug": "rust",
+                            "code": "impl Solution {\\n    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\\n        \\n    }\\n}"
+                        }
+                    ],
+                    "hints": ["Use a hash map"],
+                    "topicTags": [{"name": "Array", "slug": "array"}]
+                }
+            }
+        });
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(graphql_response))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+        let detail = client.get_problem_detail("two-sum").await;
+        assert!(detail.is_ok());
+
+        let detail = detail.unwrap();
+        assert_eq!(detail.question_id, "1");
+        assert_eq!(detail.title, "Two Sum");
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_detail_invalid_response() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": {}})))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+        let result = client.get_problem_detail("two-sum").await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid response format")
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_not_authenticated() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Not authenticated")
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_success() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+        config.csrf_token = Some("test_csrf".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "state": "SUCCESS",
+                "status_code": 10,
+                "status_msg": "Accepted",
+                "status_runtime": "4 ms",
+                "status_memory": "2.1 MB",
+                "runtime_percentile": 85.5,
+                "memory_percentile": 70.2
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        let mut file = std::fs::File::create(&solution_file).unwrap();
+        file.write_all(b"impl Solution { pub fn two_sum() {} }")
+            .unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert_eq!(result.status_code, 10);
+        assert_eq!(result.status_msg, "Accepted");
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_problem_not_found() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(999, &solution_file).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Problem not found")
+        );
+    }
+
+    #[test]
+    fn test_submission_result_deserialization() {
+        let json = r#"{
+            "status_code": 10,
+            "status_msg": "Accepted",
+            "status_runtime": "4 ms",
+            "status_memory": "2.1 MB",
+            "runtime_percentile": 85.5,
+            "memory_percentile": 70.2,
+            "code_output": null,
+            "expected_output": null,
+            "full_runtime_error": null,
+            "full_compile_error": null,
+            "total_correct": 50,
+            "total_testcases": 50,
+            "input_formatted": null
+        }"#;
+
+        let result: SubmissionResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.status_code, 10);
+        assert_eq!(result.status_msg, "Accepted");
+        assert_eq!(result.status_runtime, "4 ms");
+        assert_eq!(result.status_memory, "2.1 MB");
+        assert_eq!(result.runtime_percentile, 85.5);
+        assert_eq!(result.memory_percentile, 70.2);
+    }
+
+    #[test]
+    fn test_submission_result_wrong_answer() {
+        let json = r#"{
+            "status_code": 11,
+            "status_msg": "Wrong Answer",
+            "status_runtime": "",
+            "status_memory": "",
+            "runtime_percentile": 0.0,
+            "memory_percentile": 0.0,
+            "code_output": "[1, 2]",
+            "expected_output": "[1, 3]",
+            "full_runtime_error": null,
+            "full_compile_error": null,
+            "total_correct": 10,
+            "total_testcases": 20,
+            "input_formatted": "[2,7,11,15]\n9"
+        }"#;
+
+        let result: SubmissionResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.status_code, 11);
+        assert_eq!(result.status_msg, "Wrong Answer");
+        assert_eq!(result.code_output, Some("[1, 2]".to_string()));
+        assert_eq!(result.expected_output, Some("[1, 3]".to_string()));
+    }
+
+    #[test]
+    fn test_graph_ql_query_serialization() {
+        let mut variables = HashMap::new();
+        variables.insert("titleSlug".to_string(), serde_json::json!("two-sum"));
+
+        let query = GraphQLQuery {
+            query: "query getQuestionDetail($titleSlug: String!) { question(titleSlug: $titleSlug) { title } }".to_string(),
+            variables,
+        };
+
+        let json = serde_json::to_string(&query).unwrap();
+        assert!(json.contains("query"));
+        assert!(json.contains("variables"));
+        assert!(json.contains("two-sum"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_simple() {
+        let code = r#"struct Solution;
+
+impl Solution {
+    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {
+        let mut map = std::collections::HashMap::new();
+        for (i, &num) in nums.iter().enumerate() {
+            if let Some(&j) = map.get(&(target - num)) {
+                return vec![j as i32, i as i32];
+            }
+            map.insert(num, i);
+        }
+        vec![]
+    }
+}
+
+fn main() {
+    let sol = Solution;
+    println!("{:?}", sol.two_sum(vec![2, 7, 11, 15], 9));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_two_sum() {
+        assert_eq!(Solution::two_sum(vec![2, 7, 11, 15], 9), vec![0, 1]);
+    }
+}"#;
+
+        // Create a minimal client for testing
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains("pub fn two_sum"));
+        assert!(!extracted.contains("fn main()"));
+        assert!(!extracted.contains("#[cfg(test)]"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_no_impl() {
+        let code = r#"fn helper() {}
+
+fn main() {
+    helper();
+}
+
+#[cfg(test)]
+mod tests {}
+"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("fn helper()"));
+        assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_nested_braces() {
+        let code = r#"impl Solution {
+    pub fn test() {
+        if true {
+            for _ in 0..10 {
+                match Some(1) {
+                    Some(x) => { println!("{}", x); }
+                    None => {}
+                }
+            }
+        }
+    }
+}
+
+fn main() {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains("match Some(1)"));
+        assert!(!extracted.contains("fn main()"));
+    }
 }

@@ -110,7 +110,7 @@ impl<'a> CodeTemplate<'a> {
         desc.push_str(&format!("# {}\n\n", self.problem.title));
         desc.push_str(&format!("**Difficulty:** {}  \n", self.problem.difficulty));
         desc.push_str(&format!(
-            "**URL:** https://leetcode/problems/{}  \n\n",
+            "**URL:** https://leetcode.com/problems/{}  \n\n",
             self.problem.title_slug
         ));
 
@@ -252,11 +252,14 @@ mod tests {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use tempfile::TempDir;
+
     use super::*;
 
-    #[test]
-    fn test_template_generation() {
-        let problem = ProblemDetail {
+    fn create_test_problem() -> ProblemDetail {
+        ProblemDetail {
             question_id: "1".to_string(),
             title: "Two Sum".to_string(),
             title_slug: "two-sum".to_string(),
@@ -272,20 +275,150 @@ mod tests {
                     code: "impl Solution {\n    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n        \n    }\n}".to_string(),
                 }
             ]),
-            hints: None,
+            hints: Some(vec!["Use a hash map".to_string()]),
             topic_tags: Some(vec![
                 crate::problem::TopicTag {
                     name: "Array".to_string(),
                     slug: "array".to_string(),
-                }
+                },
+                crate::problem::TopicTag {
+                    name: "Hash Table".to_string(),
+                    slug: "hash-table".to_string(),
+                },
             ]),
-        };
+        }
+    }
 
+    fn create_test_problem_no_snippets() -> ProblemDetail {
+        ProblemDetail {
+            question_id: "2".to_string(),
+            title: "Add Two Numbers".to_string(),
+            title_slug: "add-two-numbers".to_string(),
+            content: "<p>Add two numbers...</p>".to_string(),
+            difficulty: "Medium".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        }
+    }
+
+    #[test]
+    fn test_template_generation() {
+        let problem = create_test_problem();
         let template = CodeTemplate::new(&problem);
         let rust_code = template.generate_rust_template();
 
         assert!(rust_code.contains("Two Sum"));
         assert!(rust_code.contains("impl Solution"));
         assert!(rust_code.contains("#[cfg(test)]"));
+        // Test cases are now properly parsed
+        assert!(rust_code.contains("test_case_1"));
+        assert!(rust_code.contains("test_case_2"));
+    }
+
+    #[test]
+    fn test_template_generation_no_snippets() {
+        let problem = create_test_problem_no_snippets();
+        let template = CodeTemplate::new(&problem);
+        let rust_code = template.generate_rust_template();
+
+        assert!(rust_code.contains("struct Solution"));
+        assert!(rust_code.contains("// TODO: Implement your solution here"));
+    }
+
+    #[test]
+    fn test_write_rust_template() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem = create_test_problem();
+        let template = CodeTemplate::new(&problem);
+        let output_path = temp_dir.path().join("lib.rs");
+
+        template.write_rust_template(&output_path).unwrap();
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("Two Sum"));
+        assert!(content.contains("impl Solution"));
+    }
+
+    #[test]
+    fn test_write_description() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem = create_test_problem();
+        let template = CodeTemplate::new(&problem);
+        let output_path = temp_dir.path().join("README.md");
+
+        template.write_description(&output_path).unwrap();
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("# Two Sum"));
+        assert!(content.contains("**Difficulty:** Easy"));
+        assert!(content.contains("Array"));
+        assert!(content.contains("Hash Table"));
+        assert!(content.contains("Use a hash map"));
+    }
+
+    #[test]
+    fn test_write_test_cases() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem = create_test_problem();
+        let template = CodeTemplate::new(&problem);
+        let output_path = temp_dir.path().join("test_cases.json");
+
+        template.write_test_cases(&output_path).unwrap();
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("\"problem_id\": \"1\""));
+        assert!(content.contains("\"problem_title\": \"Two Sum\""));
+        // Test cases are now properly parsed
+        assert!(content.contains("\"input\": \"2,7,11,15\""));
+        assert!(content.contains("\"expected\": \"9\""));
+    }
+
+    #[test]
+    fn test_write_cargo_toml() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem = create_test_problem();
+        let template = CodeTemplate::new(&problem);
+        let output_path = temp_dir.path().join("Cargo.toml");
+
+        template.write_cargo_toml(&output_path).unwrap();
+
+        let content = fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("name = \"p1_two_sum\""));
+        assert!(content.contains("edition = \"2021\""));
+    }
+
+    #[test]
+    fn test_generate_description_without_hints() {
+        let problem = create_test_problem_no_snippets();
+        let template = CodeTemplate::new(&problem);
+        let desc = template.generate_description();
+
+        assert!(desc.contains("# Add Two Numbers"));
+        assert!(desc.contains("**Difficulty:** Medium"));
+        assert!(!desc.contains("## Hints"));
+    }
+
+    #[test]
+    fn test_generate_test_cases_json_empty() {
+        let problem = create_test_problem_no_snippets();
+        let template = CodeTemplate::new(&problem);
+        let json = template.generate_test_cases_json();
+
+        assert!(json.contains("\"problem_id\": \"2\""));
+        assert!(json.contains("\"test_cases\": []"));
+    }
+
+    #[test]
+    fn test_get_default_rust_template() {
+        let problem = create_test_problem();
+        let template = CodeTemplate::new(&problem);
+        let default = template.get_default_rust_template();
+
+        assert!(default.contains("struct Solution"));
+        assert!(default.contains("#[cfg(test)]"));
     }
 }

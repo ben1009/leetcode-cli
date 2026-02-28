@@ -24,7 +24,9 @@ thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
+serial_test = "3.2"
 tempfile = "3.0"
+wiremock = "0.6"
 
 [profile.release]
 opt-level = 3
