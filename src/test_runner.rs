@@ -490,6 +490,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support chmod")]
     fn test_create_test_script() {
         let temp_dir = TempDir::new().unwrap();
 
