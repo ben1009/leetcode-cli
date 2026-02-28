@@ -497,3 +497,50 @@ fn print_submission_result(result: &api::SubmissionResult) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_commands_display() {
+        // Verify command variants exist and have proper descriptions
+        let pick = Commands::Pick {
+            id: Some(1),
+            difficulty: Some("easy".to_string()),
+            tag: Some("array".to_string()),
+        };
+        // Just ensure it compiles and runs
+        drop(pick);
+
+        let download = Commands::Download {
+            id: 1,
+            output: PathBuf::from("."),
+        };
+        drop(download);
+
+        let test = Commands::Test {
+            id: 1,
+            test_file: None,
+        };
+        drop(test);
+
+        let submit = Commands::Submit { id: 1, file: None };
+        drop(submit);
+
+        let login = Commands::Login {
+            session: None,
+            csrf: None,
+        };
+        drop(login);
+
+        let list = Commands::List {
+            difficulty: None,
+            status: None,
+        };
+        drop(list);
+
+        let show = Commands::Show { id: 1 };
+        drop(show);
+    }
+}

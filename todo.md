@@ -20,6 +20,54 @@
 - [x] Add release workflow
 - [x] Add dependabot for dependency updates
 
+## Code Organization
+
+- [ ] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
+- [ ] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
+
+## Bug Fixes
+
+- [ ] Fix URL typo in `template.rs:113`: `https://leetcode/problems/` → `https://leetcode.com/problems/`
+
+## Code Duplication
+
+- [ ] Centralize difficulty mapping: Use a shared enum/struct instead of string matching in `api.rs` and `main.rs`
+- [ ] Extract input prompt helper for stdin reading pattern
+
+## Unimplemented Features
+
+- [ ] Implement tag filtering in `get_random_problem()`
+- [ ] Use proper HTML parser for `clean_content()` (currently uses string replacement)
+
+## Error Handling
+
+- [ ] Improve `extract_solution_code()` - brace counting could fail on edge cases
+- [ ] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
+
+## Testing
+
+- [x] Improve test coverage to **76.65%** (exceeded 70% target!)
+  - [x] `api.rs` - **93.98%** - Added mock HTTP tests using wiremock:
+    - `fetch_all_problems`, `get_problem_by_id`, `get_random_problem`
+    - `get_problem_detail`, `submit`, error handling
+  - [x] `problem.rs` - **98.21%** - Stat methods, ProblemDetail methods, custom deserializer
+  - [x] `config.rs` - **79.53%** - Editor/workspace getters, serde roundtrip
+  - [x] `template.rs` - **95.61%** - File writing, individual generators
+  - [x] `test_runner.rs` - **71.12%** - Directory finding, output formatting, custom tests
+  - [x] `main.rs` - Command variants
+- [ ] Fix flaky `test_test_runner_creation` that changes working directory
+- [ ] Fix `parse_test_cases()` bug - splits by lines then tries to split by newlines again
+
+**Test Count:** 57 tests (was 5)
+
+## Performance
+
+- [ ] Optimize `get_all_problems()` to avoid cloning entire problem list
+
+## Documentation
+
+- [ ] Add usage examples to public APIs
+
 ## CI Workflow Template
 
 ```yaml

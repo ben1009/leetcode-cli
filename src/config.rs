@@ -88,6 +88,8 @@ pub fn reset_config() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use super::*;
 
     #[test]
@@ -96,6 +98,8 @@ mod tests {
         assert_eq!(config.default_language, "rust");
         assert!(config.session_cookie.is_none());
         assert!(config.csrf_token.is_none());
+        assert!(config.workspace_path.is_none());
+        assert!(config.editor.is_none());
     }
 
     #[test]
@@ -108,5 +112,85 @@ mod tests {
 
         config.csrf_token = Some("test_csrf".to_string());
         assert!(config.is_authenticated());
+    }
+
+    #[test]
+    fn test_is_authenticated_only_csrf() {
+        let config = Config {
+            csrf_token: Some("test_csrf".to_string()),
+            ..Default::default()
+        };
+        assert!(!config.is_authenticated());
+    }
+
+    #[test]
+    fn test_get_workspace_with_path() {
+        let test_path = PathBuf::from("/test/workspace");
+        let config = Config {
+            workspace_path: Some(test_path.clone()),
+            ..Default::default()
+        };
+        assert_eq!(config.get_workspace(), test_path);
+    }
+
+    #[test]
+    fn test_get_workspace_default() {
+        let config = Config::default();
+        let workspace = config.get_workspace();
+        // Should return current directory when no workspace is set
+        assert!(workspace.exists());
+    }
+
+    #[test]
+    fn test_set_workspace() {
+        let mut config = Config::default();
+        let test_path = PathBuf::from("/new/workspace");
+        config.set_workspace(test_path.clone());
+        assert_eq!(config.workspace_path, Some(test_path));
+    }
+
+    #[test]
+    fn test_get_editor_from_config() {
+        let config = Config {
+            editor: Some("code".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(config.get_editor(), "code");
+    }
+
+    #[test]
+    fn test_get_editor_from_env() {
+        // Temporarily set EDITOR env var
+        let original = env::var("EDITOR").ok();
+        env::set_var("EDITOR", "vim");
+
+        let config = Config::default();
+        assert_eq!(config.get_editor(), "vim");
+
+        // Restore original value
+        match original {
+            Some(val) => env::set_var("EDITOR", val),
+            None => env::remove_var("EDITOR"),
+        }
+    }
+
+    #[test]
+    fn test_config_serde_roundtrip() {
+        let config = Config {
+            session_cookie: Some("session123".to_string()),
+            csrf_token: Some("csrf456".to_string()),
+            default_language: "python".to_string(),
+            workspace_path: Some(PathBuf::from("/workspace")),
+            editor: Some("emacs".to_string()),
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: Config = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.session_cookie, config.session_cookie);
+        assert_eq!(deserialized.csrf_token, config.csrf_token);
+        assert_eq!(deserialized.default_language, config.default_language);
+        assert_eq!(deserialized.workspace_path, config.workspace_path);
+        assert_eq!(deserialized.editor, config.editor);
     }
 }

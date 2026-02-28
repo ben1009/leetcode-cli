@@ -349,4 +349,154 @@ mod tests {
 
         std::env::set_current_dir(original_dir).unwrap();
     }
+
+    #[test]
+    fn test_find_problem_directory_with_prefix() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem_dir = temp_dir.path().join("0001_two_sum");
+        fs::create_dir(&problem_dir).unwrap();
+        fs::write(problem_dir.join("solution.rs"), "fn main() {}").unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let found = TestRunner::find_problem_directory(1);
+        assert!(found.is_ok());
+        assert_eq!(found.unwrap(), problem_dir);
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_problem_directory_cargo_structure() {
+        let temp_dir = TempDir::new().unwrap();
+        let src_dir = temp_dir.path().join("src");
+        fs::create_dir(&src_dir).unwrap();
+        fs::write(temp_dir.path().join("Cargo.toml"), "[package]").unwrap();
+        fs::write(src_dir.join("lib.rs"), "pub fn test() {}").unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let found = TestRunner::find_problem_directory(999);
+        assert!(found.is_ok());
+        assert_eq!(found.unwrap(), temp_dir.path());
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_problem_directory_not_found() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let found = TestRunner::find_problem_directory(999);
+        assert!(found.is_err());
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_format_test_output_ok() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem_dir = temp_dir.path().join("0001_test");
+        fs::create_dir(&problem_dir).unwrap();
+        fs::write(problem_dir.join("solution.rs"), "").unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let runner = TestRunner::new(1, None).unwrap();
+
+        // This test mainly ensures format_test_output doesn't panic
+        let output = "running 3 tests\ntest tests::test_one ... ok\ntest tests::test_two ... ok\ntest result: ok. 3 passed; 0 failed";
+        runner.format_test_output(output);
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_format_test_output_failed() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem_dir = temp_dir.path().join("0001_test");
+        fs::create_dir(&problem_dir).unwrap();
+        fs::write(problem_dir.join("solution.rs"), "").unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let runner = TestRunner::new(1, None).unwrap();
+
+        let output = "running 2 tests\ntest tests::test_one ... ok\ntest tests::test_two ... FAILED\ntest result: FAILED. 1 passed; 1 failed";
+        runner.format_test_output(output);
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_run_custom_tests() {
+        let temp_dir = TempDir::new().unwrap();
+        let problem_dir = temp_dir.path().join("0001_test");
+        fs::create_dir(&problem_dir).unwrap();
+        fs::write(problem_dir.join("solution.rs"), "").unwrap();
+
+        let test_file = temp_dir.path().join("test_cases.json");
+        let test_content = r#"{
+            "problem_id": "1",
+            "test_cases": [
+                {
+                    "input": "[1,2,3]",
+                    "expected": "6",
+                    "explanation": "Sum of array"
+                },
+                {
+                    "input": "[4,5]",
+                    "expected": "9"
+                }
+            ]
+        }"#;
+        fs::write(&test_file, test_content).unwrap();
+
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let runner = TestRunner::new(1, None).unwrap();
+        let result = runner.run_custom_tests(&test_file);
+        assert!(result.is_ok());
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_create_test_script() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_script(temp_dir.path()).unwrap();
+
+        let script_path = temp_dir.path().join("test.sh");
+        assert!(script_path.exists());
+
+        let content = fs::read_to_string(&script_path).unwrap();
+        assert!(content.contains("cargo test"));
+    }
+
+    #[test]
+    fn test_create_cargo_toml() {
+        let temp_dir = TempDir::new().unwrap();
+        fs::write(temp_dir.path().join("solution.rs"), "fn main() {}").unwrap();
+
+        create_cargo_toml(temp_dir.path(), "test-problem").unwrap();
+
+        let cargo_path = temp_dir.path().join("Cargo.toml");
+        assert!(cargo_path.exists());
+
+        let toml_content = fs::read_to_string(&cargo_path).unwrap();
+        assert!(toml_content.contains("name = \"test_problem\""));
+
+        let src_dir = temp_dir.path().join("src");
+        assert!(src_dir.exists());
+        assert!(src_dir.join("lib.rs").exists());
+    }
 }

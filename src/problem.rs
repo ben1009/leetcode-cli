@@ -235,4 +235,294 @@ mod tests {
         assert!(!metadata.manual);
         assert_eq!(metadata.test_config.unwrap().method_name, "twoSum");
     }
+
+    #[test]
+    fn test_stat_question_title_with_title() {
+        let stat = Stat {
+            question_id: 1,
+            question__article__live: None,
+            question__article__slug: None,
+            question__title: Some("Two Sum".to_string()),
+            question__title_slug: "two-sum".to_string(),
+            question__hide: false,
+            total_acs: 1000,
+            total_submitted: 2000,
+            frontend_question_id: 1,
+            is_new_question: false,
+        };
+        assert_eq!(stat.question_title(), "Two Sum");
+    }
+
+    #[test]
+    fn test_stat_question_title_fallback() {
+        let stat = Stat {
+            question_id: 1,
+            question__article__live: None,
+            question__article__slug: None,
+            question__title: None,
+            question__title_slug: "two-sum".to_string(),
+            question__hide: false,
+            total_acs: 1000,
+            total_submitted: 2000,
+            frontend_question_id: 1,
+            is_new_question: false,
+        };
+        assert_eq!(stat.question_title(), "two sum");
+    }
+
+    #[test]
+    fn test_stat_question_title_slug() {
+        let stat = Stat {
+            question_id: 1,
+            question__article__live: None,
+            question__article__slug: None,
+            question__title: None,
+            question__title_slug: "add-two-numbers".to_string(),
+            question__hide: false,
+            total_acs: 1000,
+            total_submitted: 2000,
+            frontend_question_id: 2,
+            is_new_question: false,
+        };
+        assert_eq!(stat.question_title_slug(), "add-two-numbers");
+    }
+
+    #[test]
+    fn test_problem_detail_get_rust_snippet() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: Some(vec![
+                CodeSnippet {
+                    lang: "Rust".to_string(),
+                    lang_slug: "rust".to_string(),
+                    code: "impl Solution {\n    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n        \n    }\n}".to_string(),
+                },
+                CodeSnippet {
+                    lang: "Python".to_string(),
+                    lang_slug: "python".to_string(),
+                    code: "class Solution:".to_string(),
+                },
+            ]),
+            hints: None,
+            topic_tags: None,
+        };
+
+        let snippet = detail.get_rust_snippet();
+        assert!(snippet.is_some());
+        assert!(snippet.unwrap().contains("impl Solution"));
+    }
+
+    #[test]
+    fn test_problem_detail_get_rust_snippet_none() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: Some(vec![CodeSnippet {
+                lang: "Python".to_string(),
+                lang_slug: "python".to_string(),
+                code: "class Solution:".to_string(),
+            }]),
+            hints: None,
+            topic_tags: None,
+        };
+
+        assert!(detail.get_rust_snippet().is_none());
+    }
+
+    #[test]
+    fn test_problem_detail_get_rust_snippet_empty() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        assert!(detail.get_rust_snippet().is_none());
+    }
+
+    #[test]
+    fn test_problem_detail_parse_metadata() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: Some(r#"{"manual": true}"#.to_string()),
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        let metadata = detail.parse_metadata();
+        assert!(metadata.is_some());
+        assert!(metadata.unwrap().manual);
+    }
+
+    #[test]
+    fn test_problem_detail_parse_metadata_invalid() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: Some("invalid json".to_string()),
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        assert!(detail.parse_metadata().is_none());
+    }
+
+    #[test]
+    fn test_problem_detail_parse_test_cases_empty() {
+        // Note: parse_test_cases has a bug - it splits by lines then tries to split
+        // each line by '\n' again, which never produces len >= 2.
+        // This test documents current behavior.
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: Some("2,7,11,15\n9\n\n3,2,4\n6".to_string()),
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        // Current buggy behavior returns empty vec
+        let test_cases = detail.parse_test_cases();
+        assert!(test_cases.is_empty());
+    }
+
+    #[test]
+    fn test_problem_detail_parse_test_cases_no_examples() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Problem content</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        let test_cases = detail.parse_test_cases();
+        assert!(test_cases.is_empty());
+    }
+
+    #[test]
+    fn test_problem_detail_clean_content() {
+        let detail = ProblemDetail {
+            question_id: "1".to_string(),
+            title: "Two Sum".to_string(),
+            title_slug: "two-sum".to_string(),
+            content: "<p>Given <strong>nums</strong> &amp; array with &lt;elements&gt; &quot;quoted&quot;</p><ul><li>Item 1</li></ul><pre>code block</pre>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: None,
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: None,
+            hints: None,
+            topic_tags: None,
+        };
+
+        let cleaned = detail.clean_content();
+        assert!(cleaned.contains("Given **nums**"));
+        assert!(cleaned.contains("& array with <elements> \"quoted\""));
+        assert!(cleaned.contains("- Item 1"));
+        assert!(cleaned.contains("```"));
+        assert!(!cleaned.contains("<p>"));
+    }
+
+    #[test]
+    fn test_string_or_bool_option_with_string() {
+        let json = r#"{
+            "question_id": 1,
+            "question__article__live": "some-string-value",
+            "question__article__slug": null,
+            "question__title": "Two Sum",
+            "question__title_slug": "two-sum",
+            "question__hide": false,
+            "total_acs": 1000,
+            "total_submitted": 2000,
+            "frontend_question_id": 1,
+            "is_new_question": false
+        }"#;
+        let stat: Stat = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            stat.question__article__live,
+            Some("some-string-value".to_string())
+        );
+    }
+
+    #[test]
+    fn test_string_or_bool_option_with_bool() {
+        let json = r#"{
+            "question_id": 1,
+            "question__article__live": true,
+            "question__article__slug": null,
+            "question__title": "Two Sum",
+            "question__title_slug": "two-sum",
+            "question__hide": false,
+            "total_acs": 1000,
+            "total_submitted": 2000,
+            "frontend_question_id": 1,
+            "is_new_question": false
+        }"#;
+        let stat: Stat = serde_json::from_str(json).unwrap();
+        assert_eq!(stat.question__article__live, Some("true".to_string()));
+    }
+
+    #[test]
+    fn test_string_or_bool_option_with_null() {
+        let json = r#"{
+            "question_id": 1,
+            "question__article__live": null,
+            "question__article__slug": null,
+            "question__title": "Two Sum",
+            "question__title_slug": "two-sum",
+            "question__hide": false,
+            "total_acs": 1000,
+            "total_submitted": 2000,
+            "frontend_question_id": 1,
+            "is_new_question": false
+        }"#;
+        let stat: Stat = serde_json::from_str(json).unwrap();
+        assert_eq!(stat.question__article__live, None);
+    }
 }
