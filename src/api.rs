@@ -521,7 +521,7 @@ mod tests {
         // Test with difficulty filter
         let problem = client.get_random_problem(Some("easy"), None).await.unwrap();
         assert!(problem.is_some());
-        assert_eq!(problem.unwrap().difficulty.level, 1);
+        assert_eq!(problem.as_ref().unwrap().difficulty.level, 1);
 
         let problem = client
             .get_random_problem(Some("medium"), None)
