@@ -517,7 +517,7 @@ mod tests {
 
         let problem = client.get_problem_by_id(1).await.unwrap();
         assert!(problem.is_some());
-        assert_eq!(problem.unwrap().stat.question_id, 1);
+        assert_eq!(problem.as_ref().unwrap().stat.question_id, 1);
 
         let problem = client.get_problem_by_id(999).await.unwrap();
         assert!(problem.is_none());
