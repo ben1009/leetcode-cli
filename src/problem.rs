@@ -733,4 +733,112 @@ mod tests {
         let stat: Stat = serde_json::from_str(json).unwrap();
         assert_eq!(stat.question__article__live, None);
     }
+
+    #[test]
+    fn test_html_to_markdown_basic() {
+        let html = "<p>Hello <strong>world</strong></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Hello **world**"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_emphasis() {
+        let html = "<p>Hello <em>world</em> and <i>italic</i></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Hello *world*"));
+        assert!(md.contains("and *italic*"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_code() {
+        let html = "<p>Use <code>print()</code> function</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Use `print()` function"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_preformatted() {
+        let html = "<pre>code block</pre>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("```"));
+        assert!(md.contains("code block"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_headings() {
+        let html = "<h1>Title</h1><h2>Subtitle</h2><h3>Section</h3>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("# Title"));
+        assert!(md.contains("## Subtitle"));
+        assert!(md.contains("### Section"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_links() {
+        let html = r#"<a href="https://example.com">Link text</a>"#;
+        let md = html_to_markdown(html);
+        assert!(md.contains("[Link text](https://example.com)"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_links_without_href() {
+        let html = "<a>Text without link</a>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Text without link"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_lists() {
+        let html = "<ul><li>Item 1</li><li>Item 2</li></ul>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("- Item 1"));
+        assert!(md.contains("- Item 2"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_line_break() {
+        let html = "<p>Line 1<br>Line 2</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Line 1\nLine 2"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_html_entities() {
+        let html = "&quot;quoted&quot; &lt;tag&gt; &amp; &nbsp; &#39;apos&#39;";
+        let md = html_to_markdown(html);
+        assert!(md.contains("\"quoted\""));
+        assert!(md.contains("<tag>"));
+        assert!(md.contains("&"));
+        assert!(md.contains(" ")); // &nbsp; becomes space
+        assert!(md.contains("'apos'"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_nested_elements() {
+        let html = "<p>Text with <strong>bold and <em>italic</em></strong></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("**bold and *italic***"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_empty() {
+        let html = "";
+        let md = html_to_markdown(html);
+        assert_eq!(md.trim(), "");
+    }
+
+    #[test]
+    fn test_html_to_markdown_unknown_tags() {
+        let html = "<div><span>Text in unknown tags</span></div>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Text in unknown tags"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_code_in_pre() {
+        let html = "<pre><code>fn main() {}</code></pre>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("```"));
+        assert!(md.contains("fn main() {}"));
+    }
 }

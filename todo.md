@@ -73,7 +73,7 @@
 
 ## Documentation
 
-- [ ] Add usage examples to public APIs
+- [x] Add usage examples to public APIs
 
 ## CI Workflow Template
 

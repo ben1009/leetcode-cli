@@ -156,3 +156,198 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_find_solution_file_with_explicit_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "fn main() {}").unwrap();
+
+        let result = find_solution_file(1, Some(solution_file.clone()));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), solution_file);
+    }
+
+    #[test]
+    fn test_find_solution_file_not_found() {
+        // Create a temp directory that won't have the problem directory
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = find_solution_file(999, None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_solution_file_cargo_structure() {
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        // Create problem directory with Cargo structure
+        let problem_dir = temp_dir.path().join("0001_two_sum");
+        let src_dir = problem_dir.join("src");
+        std::fs::create_dir_all(&src_dir).unwrap();
+        let lib_rs = src_dir.join("lib.rs");
+        std::fs::write(&lib_rs, "pub struct Solution;").unwrap();
+
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = find_solution_file(1, None);
+        assert!(result.is_ok());
+        // Compare file names since paths may be canonicalized differently
+        let found_path = result.unwrap();
+        assert!(found_path.to_string_lossy().contains("0001_two_sum"));
+        assert!(found_path.to_string_lossy().contains("lib.rs"));
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_solution_file_legacy_structure() {
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        // Create problem directory with legacy structure
+        let problem_dir = temp_dir.path().join("0002_add_two_numbers");
+        std::fs::create_dir(&problem_dir).unwrap();
+        let solution_rs = problem_dir.join("solution.rs");
+        std::fs::write(&solution_rs, "pub struct Solution;").unwrap();
+
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = find_solution_file(2, None);
+        assert!(result.is_ok());
+        // Compare file names since paths may be canonicalized differently
+        let found_path = result.unwrap();
+        assert!(found_path.to_string_lossy().contains("0002_add_two_numbers"));
+        assert!(found_path.to_string_lossy().contains("solution.rs"));
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_print_problem_summary() {
+        use crate::problem::{Difficulty, Stat};
+
+        let problem = Problem {
+            stat: Stat {
+                question_id: 1,
+                question__article__live: None,
+                question__article__slug: None,
+                question__title: Some("Two Sum".to_string()),
+                question__title_slug: "two-sum".to_string(),
+                question__hide: false,
+                total_acs: 1000000,
+                total_submitted: 2000000,
+                frontend_question_id: 1,
+                is_new_question: false,
+            },
+            difficulty: Difficulty { level: 1 },
+            paid_only: false,
+            is_favor: false,
+            frequency: 0,
+            progress: 0,
+            status: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_problem_summary(&problem);
+    }
+
+    #[test]
+    fn test_print_submission_result_accepted() {
+        let result = SubmissionResult {
+            status_code: 10,
+            status_msg: "Accepted".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "2.1 MB".to_string(),
+            runtime_percentile: 95.5,
+            memory_percentile: 80.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: Some(100),
+            total_testcases: Some(100),
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_wrong_answer() {
+        let result = SubmissionResult {
+            status_code: 11,
+            status_msg: "Wrong Answer".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "2.1 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: Some("[1, 2]".to_string()),
+            expected_output: Some("[0, 1]".to_string()),
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: Some(50),
+            total_testcases: Some(100),
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_compile_error() {
+        let result = SubmissionResult {
+            status_code: 20,
+            status_msg: "Compile Error".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "0 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: Some("error: expected semicolon".to_string()),
+            total_correct: None,
+            total_testcases: None,
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_unknown_status() {
+        let result = SubmissionResult {
+            status_code: 999,
+            status_msg: "Unknown Status".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "0 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: None,
+            total_testcases: None,
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+}
