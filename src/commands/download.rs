@@ -7,6 +7,14 @@ use colored::Colorize;
 
 use crate::{api::LeetCodeClient, template::CodeTemplate};
 
+/// Sanitize a string to be safe for use in a directory name.
+/// Removes path separators and other potentially dangerous characters.
+fn sanitize_dir_name(name: &str) -> String {
+    name.chars()
+        .filter(|c| !matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+        .collect()
+}
+
 /// Download problem to local workspace
 pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Result<()> {
     println!("{}", format!("Downloading problem {id}...").cyan());
@@ -20,12 +28,9 @@ pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Resul
         .get_problem_detail(&problem.stat.question_title_slug())
         .await?;
 
-    // Create problem directory
-    let problem_dir = output.join(format!(
-        "{:04}_{}",
-        id,
-        problem.stat.question_title_slug().replace("-", "_")
-    ));
+    // Create problem directory (sanitize slug to prevent path traversal)
+    let slug = sanitize_dir_name(&problem.stat.question_title_slug());
+    let problem_dir = output.join(format!("{:04}_{}", id, slug.replace("-", "_")));
     std::fs::create_dir_all(&problem_dir)?;
 
     // Create src directory
@@ -63,4 +68,42 @@ pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Resul
     println!("  cargo test");
 
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sanitize_dir_name_normal() {
+        assert_eq!(sanitize_dir_name("two-sum"), "two-sum");
+        assert_eq!(sanitize_dir_name("add-two-numbers"), "add-two-numbers");
+    }
+
+    #[test]
+    fn test_sanitize_dir_name_removes_path_traversal() {
+        assert_eq!(sanitize_dir_name("../../../etc/passwd"), "......etcpasswd");
+        assert_eq!(sanitize_dir_name("..\\\\..\\\\windows"), "....windows");
+    }
+
+    #[test]
+    fn test_sanitize_dir_name_removes_invalid_chars() {
+        assert_eq!(sanitize_dir_name("test:name"), "testname");
+        assert_eq!(sanitize_dir_name("test*name"), "testname");
+        assert_eq!(sanitize_dir_name("test?name"), "testname");
+        assert_eq!(sanitize_dir_name("test\"name"), "testname");
+        assert_eq!(sanitize_dir_name("test<name>"), "testname");
+        assert_eq!(sanitize_dir_name("test|name"), "testname");
+    }
+
+    #[test]
+    fn test_sanitize_dir_name_empty() {
+        assert_eq!(sanitize_dir_name(""), "");
+    }
+
+    #[test]
+    fn test_sanitize_dir_name_all_invalid() {
+        assert_eq!(sanitize_dir_name("/\\:*?\"<>|"), "");
+    }
 }
