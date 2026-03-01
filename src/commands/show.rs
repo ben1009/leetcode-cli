@@ -40,10 +40,7 @@ pub async fn execute(client: &LeetCodeClient, id: u32) -> Result<()> {
     println!("{}", "─".repeat(80).cyan());
 
     // Print description
-    println!(
-        "\n{}",
-        detail.content.replace("<p>", "").replace("</p>", "\n\n")
-    );
+    println!("\n{}", detail.clean_content());
 
     // Print examples if available
     if let Some(examples) = &detail.example_testcases {
