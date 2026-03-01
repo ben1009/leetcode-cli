@@ -70,7 +70,6 @@ pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Resul
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
