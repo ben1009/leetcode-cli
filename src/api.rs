@@ -1225,4 +1225,95 @@ fn main() {}"#;
         assert_eq!(count_significant_braces("<'a>", 0), 0);
         assert_eq!(count_significant_braces("<'a, 'b>", 0), 0);
     }
+
+    #[test]
+    fn test_count_significant_braces_escape_sequences() {
+        // Escaped characters should not affect state
+        assert_eq!(count_significant_braces(r#""\{""#, 0), 0); // Escaped quote in string
+        assert_eq!(count_significant_braces(r#"'\''"#, 0), 0); // Escaped quote in char
+        assert_eq!(count_significant_braces(r#""\\""#, 0), 0); // Escaped backslash
+    }
+
+    #[test]
+    fn test_submission_result_tle() {
+        // Test Time Limit Exceeded status
+        let json = r#"{
+            "status_code": 14,
+            "status_msg": "Time Limit Exceeded",
+            "status_runtime": "N/A",
+            "status_memory": "N/A",
+            "runtime_percentile": 0.0,
+            "memory_percentile": 0.0
+        }"#;
+        let result: SubmissionResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.status_code, 14);
+        assert_eq!(result.status_msg, "Time Limit Exceeded");
+    }
+
+    #[test]
+    fn test_submission_result_runtime_error() {
+        // Test Runtime Error status
+        let json = r#"{
+            "status_code": 15,
+            "status_msg": "Runtime Error",
+            "status_runtime": "N/A",
+            "status_memory": "N/A",
+            "runtime_percentile": 0.0,
+            "memory_percentile": 0.0,
+            "full_runtime_error": "Line 1: error message"
+        }"#;
+        let result: SubmissionResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.status_code, 15);
+        assert!(result.full_runtime_error.is_some());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_detail_http_error() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let result = client.get_problem_detail("two-sum").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_detail_invalid_json() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("invalid json"))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let result = client.get_problem_detail("two-sum").await;
+        assert!(result.is_err());
+    }
 }
