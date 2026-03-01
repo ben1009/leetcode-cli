@@ -137,7 +137,13 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
         .collect();
 
     if entries.is_empty() {
-        anyhow::bail!("Problem directory not found. Please specify with --file");
+        anyhow::bail!("Problem directory not found for ID {id}. Please specify with --file");
+    }
+
+    if entries.len() > 1 {
+        anyhow::bail!(
+            "Multiple directories found for ID {id}. Please specify the exact path with --file"
+        );
     }
 
     let problem_dir = entries[0].path();
@@ -235,6 +241,33 @@ mod tests {
                 .contains("0002_add_two_numbers")
         );
         assert!(found_path.to_string_lossy().contains("solution.rs"));
+
+        std::env::set_current_dir(original_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_solution_file_multiple_matches() {
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        // Create multiple directories matching the same ID
+        let problem_dir1 = temp_dir.path().join("0001_two_sum");
+        let src_dir1 = problem_dir1.join("src");
+        std::fs::create_dir_all(&src_dir1).unwrap();
+        std::fs::write(src_dir1.join("lib.rs"), "pub struct Solution;").unwrap();
+
+        let problem_dir2 = temp_dir.path().join("0001_two_sum_v2");
+        let src_dir2 = problem_dir2.join("src");
+        std::fs::create_dir_all(&src_dir2).unwrap();
+        std::fs::write(src_dir2.join("lib.rs"), "pub struct Solution;").unwrap();
+
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let result = find_solution_file(1, None);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Multiple directories found"));
+        assert!(err_msg.contains("--file"));
 
         std::env::set_current_dir(original_dir).unwrap();
     }
