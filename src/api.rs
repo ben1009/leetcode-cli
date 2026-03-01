@@ -341,30 +341,6 @@ impl LeetCodeClient {
             .collect::<Vec<_>>()
             .join("\n")
     }
-
-    #[allow(dead_code)]
-    pub async fn check_solution_status(&self, submission_id: i64) -> Result<SubmissionResult> {
-        let check_url = format!(
-            "https://leetcode.com/submissions/detail/{}/check/",
-            submission_id
-        );
-
-        let response = self.client.get(&check_url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(anyhow!("Failed to check status: {}", response.status()));
-        }
-
-        let result: SubmissionResult = response.json().await?;
-        Ok(result)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct SubmitResponse {
-    #[serde(rename = "submission_id")]
-    submission_id: i64,
 }
 
 #[cfg(test)]

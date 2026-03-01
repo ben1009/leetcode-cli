@@ -250,81 +250,6 @@ edition = "2021"
     }
 }
 
-#[allow(dead_code)]
-// Helper function to create a simple test runner script
-pub fn create_test_script(problem_dir: &Path) -> Result<()> {
-    let script_content = r#"#!/bin/bash
-# Test runner script for LeetCode solution
-
-echo "Running tests for LeetCode solution..."
-echo ""
-
-# Check if cargo is installed
-if ! command -v cargo &> /dev/null; then
-    echo "Error: Cargo is not installed. Please install Rust."
-    exit 1
-fi
-
-# Run cargo test
-cargo test --lib
-
-# Check exit code
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "✓ All tests passed!"
-    exit 0
-else
-    echo ""
-    echo "✗ Some tests failed"
-    exit 1
-fi
-"#;
-
-    let script_path = problem_dir.join("test.sh");
-    std::fs::write(&script_path, script_content)?;
-
-    // Make executable on Unix systems
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&script_path)?.permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&script_path, perms)?;
-    }
-
-    Ok(())
-}
-
-#[allow(dead_code)]
-// Create a simple Cargo.toml for standalone problem directories
-pub fn create_cargo_toml(problem_dir: &Path, problem_name: &str) -> Result<()> {
-    let cargo_toml = format!(
-        r#"[package]
-name = "{}"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-"#,
-        problem_name.replace("-", "_")
-    );
-
-    std::fs::write(problem_dir.join("Cargo.toml"), cargo_toml)?;
-
-    // Create src directory and move solution.rs to src/lib.rs
-    let src_dir = problem_dir.join("src");
-    std::fs::create_dir_all(&src_dir)?;
-
-    let solution_file = problem_dir.join("solution.rs");
-    if solution_file.exists() {
-        let content = std::fs::read_to_string(&solution_file)?;
-        std::fs::write(src_dir.join("lib.rs"), content)?;
-        // Keep the original solution.rs as well
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -487,37 +412,5 @@ mod tests {
         let runner = TestRunner::new(1, None).unwrap();
         let result = runner.run_custom_tests(&test_file);
         assert!(result.is_ok());
-    }
-
-    #[test]
-    #[cfg_attr(miri, ignore = "Miri doesn't support chmod")]
-    fn test_create_test_script() {
-        let temp_dir = TempDir::new().unwrap();
-
-        create_test_script(temp_dir.path()).unwrap();
-
-        let script_path = temp_dir.path().join("test.sh");
-        assert!(script_path.exists());
-
-        let content = fs::read_to_string(&script_path).unwrap();
-        assert!(content.contains("cargo test"));
-    }
-
-    #[test]
-    fn test_create_cargo_toml() {
-        let temp_dir = TempDir::new().unwrap();
-        fs::write(temp_dir.path().join("solution.rs"), "fn main() {}").unwrap();
-
-        create_cargo_toml(temp_dir.path(), "test-problem").unwrap();
-
-        let cargo_path = temp_dir.path().join("Cargo.toml");
-        assert!(cargo_path.exists());
-
-        let toml_content = fs::read_to_string(&cargo_path).unwrap();
-        assert!(toml_content.contains("name = \"test_problem\""));
-
-        let src_dir = temp_dir.path().join("src");
-        assert!(src_dir.exists());
-        assert!(src_dir.join("lib.rs").exists());
     }
 }

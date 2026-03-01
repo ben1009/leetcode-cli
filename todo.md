@@ -22,8 +22,8 @@
 
 ## Code Organization
 
-- [ ] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
-- [ ] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
+- [x] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
+- [x] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
 
 ## Bug Fixes
 
