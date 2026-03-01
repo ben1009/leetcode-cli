@@ -41,13 +41,13 @@
 
 ## Unimplemented Features
 
-- [ ] Implement tag filtering in `get_random_problem()`
-- [ ] Use proper HTML parser for `clean_content()` (currently uses string replacement)
+- [x] Implement tag filtering in `get_random_problem()`
+- [x] Use proper HTML parser for `clean_content()` (currently uses string replacement)
 
 ## Error Handling
 
-- [ ] Improve `extract_solution_code()` - brace counting could fail on edge cases
-- [ ] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
+- [x] Improve `extract_solution_code()` - brace counting could fail on edge cases
+- [x] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
 
 ## Testing
 
@@ -69,7 +69,7 @@
 
 ## Performance
 
-- [ ] Optimize `get_all_problems()` to avoid cloning entire problem list
+- [x] Optimize `get_all_problems()` to avoid cloning entire problem list
 
 ## Documentation
 

@@ -1,3 +1,4 @@
+use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -238,26 +239,136 @@ impl ProblemDetail {
     }
 
     pub fn clean_content(&self) -> String {
-        self.content
-            .replace("<p>", "")
-            .replace("</p>", "\n\n")
-            .replace("<strong>", "**")
-            .replace("</strong>", "**")
-            .replace("<em>", "*")
-            .replace("</em>", "*")
-            .replace("<code>", "`")
-            .replace("</code>", "`")
-            .replace("<pre>", "```\n")
-            .replace("</pre>", "\n```")
-            .replace("<ul>", "")
-            .replace("</ul>", "")
-            .replace("<li>", "- ")
-            .replace("</li>", "")
-            .replace("&quot;", "\"")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&amp;", "&")
+        html_to_markdown(&self.content)
     }
+}
+
+/// Convert HTML content to Markdown using a proper HTML parser.
+///
+/// This function uses the `scraper` crate to parse HTML and convert
+/// common HTML elements to their Markdown equivalents.
+pub fn html_to_markdown(html: &str) -> String {
+    let document = Html::parse_fragment(html);
+    let root = document.root_element();
+
+    let mut output = String::new();
+    let mut in_code_block = false;
+
+    fn traverse_node(
+        node: &scraper::ElementRef,
+        output: &mut String,
+        in_code_block: &mut bool,
+    ) {
+        for child in node.children() {
+            match child.value() {
+                Node::Text(text) => {
+                    let text_str = text.trim();
+                    if !text_str.is_empty() || *in_code_block {
+                        output.push_str(&text.replace('\n', " "));
+                    }
+                }
+                Node::Element(element) => {
+                    let tag_name = element.name();
+                    match tag_name {
+                        "p" => {
+                            if !output.is_empty() && !output.ends_with('\n') {
+                                output.push('\n');
+                            }
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('\n');
+                        }
+                        "strong" | "b" => {
+                            output.push_str("**");
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push_str("**");
+                        }
+                        "em" | "i" => {
+                            output.push('*');
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('*');
+                        }
+                        "code" => {
+                            if !*in_code_block {
+                                output.push('`');
+                            }
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            if !*in_code_block {
+                                output.push('`');
+                            }
+                        }
+                        "pre" => {
+                            output.push_str("\n```\n");
+                            *in_code_block = true;
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            *in_code_block = false;
+                            output.push_str("\n```\n");
+                        }
+                        "ul" | "ol" => {
+                            output.push('\n');
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('\n');
+                        }
+                        "li" => {
+                            output.push_str("\n- ");
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                        }
+                        "br" => {
+                            output.push('\n');
+                        }
+                        "h1" => {
+                            output.push_str("\n# ");
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('\n');
+                        }
+                        "h2" => {
+                            output.push_str("\n## ");
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('\n');
+                        }
+                        "h3" => {
+                            output.push_str("\n### ");
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            output.push('\n');
+                        }
+                        "a" => {
+                            // Extract href and text
+                            if let Some(href) = element.attr("href") {
+                                output.push('[');
+                                traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                                output.push_str("](");
+                                output.push_str(href);
+                                output.push(')');
+                            } else {
+                                traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            }
+                        }
+                        _ => {
+                            // For unknown tags, just traverse children
+                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    traverse_node(&root, &mut output, &mut in_code_block);
+
+    // Decode HTML entities
+    output
+        .replace("&quot;", "\"")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+        .replace("&nbsp;", " ")
+        .replace("&#39;", "'")
+        .replace("&#x27;", "'")
+        .replace("&#x2F;", "/")
+        .replace("&#x3C;", "<")
+        .replace("&#x3E;", ">")
+        .replace("&#x22;", "\"")
+        .replace("&#x26;", "&")
 }
 
 #[cfg(test)]

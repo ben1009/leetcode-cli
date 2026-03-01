@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use rand::seq::IndexedRandom;
@@ -14,7 +14,7 @@ use crate::{
 pub struct LeetCodeClient {
     client: Client,
     config: Config,
-    problems: Vec<Problem>,
+    problems: Arc<Vec<Problem>>,
     base_url: String,
 }
 
@@ -89,7 +89,7 @@ impl LeetCodeClient {
         let mut lc_client = Self {
             client,
             config,
-            problems: Vec::new(),
+            problems: Arc::new(Vec::new()),
             base_url,
         };
 
@@ -108,12 +108,13 @@ impl LeetCodeClient {
         }
 
         let problem_list: ProblemList = response.json().await?;
-        self.problems = problem_list.stat_status_pairs;
+        self.problems = Arc::new(problem_list.stat_status_pairs);
 
         Ok(())
     }
 
-    pub async fn get_all_problems(&self) -> Result<Vec<Problem>> {
+    /// Get all problems as a cheaply cloneable Arc reference.
+    pub async fn get_all_problems(&self) -> Result<Arc<Vec<Problem>>> {
         Ok(self.problems.clone())
     }
 
@@ -139,14 +140,37 @@ impl LeetCodeClient {
             }
         }
 
-        // Filter by tag (simplified - in real implementation, you'd need to fetch tags)
-        if let Some(_t) = tag {
-            // This would require additional API calls to filter by tag
-            // For now, we'll skip this filter
-        }
-
         // Filter out paid-only problems
         filtered.retain(|p| !p.paid_only);
+
+        // Filter by tag if specified
+        // Note: This requires fetching problem details since the problem list
+        // doesn't include tag information. We limit to first 50 to avoid too many API calls.
+        if let Some(tag_filter) = tag {
+            let tag_slug = tag_filter.to_lowercase().replace(" ", "-");
+            let mut tagged_problems = Vec::new();
+
+            for problem in filtered.iter().take(50) {
+                match self.get_problem_detail(&problem.stat.question_title_slug()).await {
+                    Ok(detail) => {
+                        if let Some(ref tags) = detail.topic_tags {
+                            if tags.iter().any(|t| {
+                                t.slug == tag_slug
+                                    || t.name.to_lowercase() == tag_filter.to_lowercase()
+                            }) {
+                                tagged_problems.push(*problem);
+                            }
+                        }
+                    }
+                    Err(_) => continue, // Skip problems we can't fetch details for
+                }
+            }
+
+            if tagged_problems.is_empty() {
+                return Ok(None);
+            }
+            filtered = tagged_problems.iter().map(|p| *p).collect();
+        }
 
         // Pick random problem
         let mut rng = rand::rng();
@@ -263,10 +287,8 @@ impl LeetCodeClient {
         #[cfg(not(test))]
         let max_attempts = 30;
 
-        #[cfg(test)]
-        let delay_secs = 0;
-        #[cfg(not(test))]
-        let delay_secs = 2;
+        // Exponential backoff: start at 1s, max 8s
+        let mut delay_secs = 1;
 
         for attempt in 0..max_attempts {
             println!("  Checking result... ({}/{})", attempt + 1, max_attempts);
@@ -274,7 +296,10 @@ impl LeetCodeClient {
             let response = self.client.get(&check_url).send().await?;
 
             if !response.status().is_success() {
+                #[cfg(not(test))]
                 tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
+                // Exponential backoff with cap at 8 seconds
+                delay_secs = (delay_secs * 2).min(8);
                 continue;
             }
 
@@ -288,14 +313,17 @@ impl LeetCodeClient {
                 }
             }
 
+            #[cfg(not(test))]
             tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
+            // Exponential backoff with cap at 8 seconds
+            delay_secs = (delay_secs * 2).min(8);
         }
 
         Err(anyhow!("Timeout waiting for submission result"))
     }
 
     pub(crate) fn extract_solution_code(code: &str) -> String {
-        // Simple extraction - find the impl Solution block
+        // Find the impl Solution block with proper handling of strings and comments
         let lines: Vec<&str> = code.lines().collect();
         let mut result = Vec::new();
         let mut in_solution = false;
@@ -309,24 +337,19 @@ impl LeetCodeClient {
                 break;
             }
 
-            // Look for impl Solution
-            if trimmed.contains("impl Solution") {
+            // Look for impl Solution (but not impl Solution { } in comments)
+            if !trimmed.starts_with("//") && trimmed.contains("impl Solution") {
                 in_solution = true;
             }
 
             if in_solution {
                 result.push(*line);
 
-                // Count braces to find end of impl block
-                for c in trimmed.chars() {
-                    if c == '{' {
-                        brace_count += 1;
-                    } else if c == '}' {
-                        brace_count -= 1;
-                        if brace_count == 0 {
-                            return result.join("\n");
-                        }
-                    }
+                // Count braces, ignoring those in strings and comments
+                let delta = count_significant_braces(trimmed, brace_count);
+                brace_count = brace_count.wrapping_add_signed(delta);
+                if brace_count == 0 && result.len() > 1 {
+                    return result.join("\n");
                 }
             }
         }
@@ -341,6 +364,69 @@ impl LeetCodeClient {
             .collect::<Vec<_>>()
             .join("\n")
     }
+}
+
+/// Count braces in a line, ignoring those inside string literals and comments.
+/// Returns the net change in brace depth (+1 for each '{', -1 for each '}').
+fn count_significant_braces(line: &str, current_depth: usize) -> isize {
+    let mut in_string = false;
+    let mut in_char = false;
+    let mut escape_next = false;
+    let mut in_line_comment = false;
+    let mut brace_delta: isize = 0;
+
+    for (i, c) in line.chars().enumerate() {
+        // Check for line comment start (but not inside strings)
+        if !in_string && !in_char && !in_line_comment {
+            if c == '/' && line.get(i + 1..i + 2) == Some("/") {
+                in_line_comment = true;
+                continue;
+            }
+        }
+
+        if in_line_comment {
+            continue;
+        }
+
+        if escape_next {
+            escape_next = false;
+            continue;
+        }
+
+        match c {
+            '\\' if in_string || in_char => {
+                escape_next = true;
+            }
+            '"' if !in_char => {
+                in_string = !in_string;
+            }
+            '\'' if !in_string => {
+                // Handle char literals, being careful about lifetime syntax like 'a
+                if !in_char {
+                    // Check if this looks like a lifetime
+                    let prev = i.checked_sub(1).and_then(|j| line.chars().nth(j));
+                    let is_lifetime = prev.map_or(false, |p| p.is_alphanumeric() || p == '_');
+                    if !is_lifetime {
+                        in_char = true;
+                    }
+                } else {
+                    in_char = false;
+                }
+            }
+            '{' if !in_string && !in_char => {
+                brace_delta += 1;
+            }
+            '}' if !in_string && !in_char => {
+                // Don't go below zero at the line level
+                if current_depth.wrapping_add_signed(brace_delta) > 0 {
+                    brace_delta -= 1;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    brace_delta
 }
 
 #[cfg(test)]
@@ -511,6 +597,97 @@ mod tests {
             .await
             .unwrap();
         assert!(problem.is_some());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_random_problem_with_tag() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        // Mock GraphQL for two-sum with array tag
+        let two_sum_graphql = serde_json::json!({
+            "data": {
+                "question": {
+                    "questionId": "1",
+                    "title": "Two Sum",
+                    "titleSlug": "two-sum",
+                    "content": "<p>Given an array...</p>",
+                    "difficulty": "Easy",
+                    "exampleTestcases": "[2,7,11,15]\\n9",
+                    "sampleTestCase": "[2,7,11,15]\\n9",
+                    "metaData": null,
+                    "codeSnippets": [],
+                    "hints": [],
+                    "topicTags": [{"name": "Array", "slug": "array"}]
+                }
+            }
+        });
+
+        // Mock GraphQL for add-two-numbers with linked-list tag
+        let add_two_numbers_graphql = serde_json::json!({
+            "data": {
+                "question": {
+                    "questionId": "2",
+                    "title": "Add Two Numbers",
+                    "titleSlug": "add-two-numbers",
+                    "content": "<p>Add two numbers...</p>",
+                    "difficulty": "Medium",
+                    "exampleTestcases": "[2,4,3]\\n[5,6,4]",
+                    "sampleTestCase": "[2,4,3]\\n[5,6,4]",
+                    "metaData": null,
+                    "codeSnippets": [],
+                    "hints": [],
+                    "topicTags": [{"name": "Linked List", "slug": "linked-list"}]
+                }
+            }
+        });
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .and(wiremock::matchers::body_string_contains("two-sum"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(two_sum_graphql))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/graphql"))
+            .and(wiremock::matchers::body_string_contains("add-two-numbers"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(add_two_numbers_graphql))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        // Test with array tag - should find Two Sum
+        let problem = client
+            .get_random_problem(None, Some("array"))
+            .await
+            .unwrap();
+        assert!(problem.is_some());
+        assert_eq!(problem.as_ref().unwrap().stat.question_id, 1);
+
+        // Test with linked-list tag - should find Add Two Numbers
+        let problem = client
+            .get_random_problem(None, Some("linked-list"))
+            .await
+            .unwrap();
+        assert!(problem.is_some());
+        assert_eq!(problem.as_ref().unwrap().stat.question_id, 2);
+
+        // Test with non-existent tag
+        let problem = client
+            .get_random_problem(None, Some("non-existent-tag"))
+            .await
+            .unwrap();
+        assert!(problem.is_none());
     }
 
     #[tokio::test]
@@ -853,6 +1030,45 @@ fn main() {}"#;
         let extracted = LeetCodeClient::extract_solution_code(code);
         assert!(extracted.contains("impl Solution"));
         assert!(extracted.contains("match Some(1)"));
+        assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_braces_in_strings() {
+        // Test that braces inside string literals don't affect extraction
+        let code = r#"impl Solution {
+    pub fn test() -> String {
+        let s = "This has { braces } and } more";
+        let t = "Another } brace";
+        format!("{}", s)
+    }
+}
+
+fn main() {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains(r#""This has { braces } and } more""#));
+        assert!(extracted.contains("format!"));
+        assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_braces_in_comments() {
+        // Test that braces inside comments don't affect extraction
+        let code = r#"impl Solution {
+    pub fn test() {
+        // This comment has { braces }
+        /* Block comment with } */
+        let x = 1;
+    }
+}
+
+fn main() {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains("let x = 1"));
         assert!(!extracted.contains("fn main()"));
     }
 }

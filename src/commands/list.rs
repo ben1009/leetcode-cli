@@ -21,7 +21,7 @@ pub async fn execute(
     );
     println!("{}", "-".repeat(80));
 
-    for problem in problems {
+    for problem in problems.iter() {
         let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
             Ok(DifficultyLevel::Easy) => "Easy".green(),
             Ok(DifficultyLevel::Medium) => "Medium".yellow(),
