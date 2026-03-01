@@ -415,7 +415,7 @@ impl LeetCodeClient {
 
 /// Count braces in a line, ignoring those inside string literals and comments.
 /// Returns the net change in brace depth (+1 for each '{', -1 for each '}').
-fn count_significant_braces(line: &str, current_depth: usize) -> isize {
+pub(crate) fn count_significant_braces(line: &str, current_depth: usize) -> isize {
     let mut in_string = false;
     let mut in_char = false;
     let mut escape_next = false;
@@ -1120,5 +1120,109 @@ fn main() {}"#;
         assert!(extracted.contains("impl Solution"));
         assert!(extracted.contains("let x = 1"));
         assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_only_main() {
+        // Code with only helper function and main, no impl Solution
+        let code = r#"fn helper() {
+    println!("Hello");
+}
+
+fn main() {
+    helper();
+}
+
+#[cfg(test)]
+mod tests {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        // When there's no impl Solution, it returns code until main() or tests
+        assert!(extracted.contains("fn helper()"));
+        assert!(!extracted.contains("fn main()"));
+        assert!(!extracted.contains("mod tests"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_lifetimes() {
+        // Code with lifetime annotations (shouldn't be confused with char literals)
+        let code = r#"impl Solution {
+    pub fn test<'a>(x: &'a str) -> &'a str {
+        x
+    }
+}
+
+fn main() {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains("test<'a>"));
+        assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_extract_solution_code_escaped_quotes() {
+        // Code with escaped quotes inside strings
+        let code = r#"impl Solution {
+    pub fn test() -> String {
+        let s = "This has \\"escaped quotes\\"";
+        s.to_string()
+    }
+}
+
+fn main() {}"#;
+
+        let extracted = LeetCodeClient::extract_solution_code(code);
+        assert!(extracted.contains("impl Solution"));
+        assert!(extracted.contains(r#"\\"escaped quotes\\""#));
+        assert!(!extracted.contains("fn main()"));
+    }
+
+    #[test]
+    fn test_count_significant_braces_basic() {
+        // Directly test brace counting
+        assert_eq!(count_significant_braces("{", 0), 1);
+        assert_eq!(count_significant_braces("}", 1), -1);
+        assert_eq!(count_significant_braces("{}", 0), 0);
+        assert_eq!(count_significant_braces("{{}}", 0), 0);
+    }
+
+    #[test]
+    fn test_count_significant_braces_in_strings() {
+        // Braces in strings should be ignored
+        assert_eq!(count_significant_braces(r#""{""#, 0), 0);
+        assert_eq!(count_significant_braces(r#""} {""#, 1), 0);
+        assert_eq!(count_significant_braces(r#""{""#, 0), 0);
+        assert_eq!(count_significant_braces(r#""}""#, 1), 0);
+    }
+
+    #[test]
+    fn test_count_significant_braces_in_comments() {
+        // Braces in comments should be ignored
+        assert_eq!(count_significant_braces("// { }", 0), 0);
+        assert_eq!(count_significant_braces("code // { }", 0), 0);
+        assert_eq!(count_significant_braces("code { // }", 0), 1);
+    }
+
+    #[test]
+    fn test_count_significant_braces_respects_depth() {
+        // Brace closing respects current depth
+        assert_eq!(count_significant_braces("}", 0), 0); // Can't go below 0
+        assert_eq!(count_significant_braces("}", 1), -1); // Can decrease at depth 1
+        assert_eq!(count_significant_braces("}}", 1), -1); // Only decreases by 1
+    }
+
+    #[test]
+    fn test_count_significant_braces_char_literals() {
+        // Braces in char literals should be ignored
+        assert_eq!(count_significant_braces("'{'", 0), 0);
+        assert_eq!(count_significant_braces("'}'", 1), 0);
+    }
+
+    #[test]
+    fn test_count_significant_braces_lifetimes() {
+        // Lifetime annotations shouldn't be confused with char literals
+        assert_eq!(count_significant_braces("<'a>", 0), 0);
+        assert_eq!(count_significant_braces("<'a, 'b>", 0), 0);
     }
 }
