@@ -159,8 +159,9 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::TempDir;
+
+    use super::*;
 
     #[test]
     fn test_find_solution_file_with_explicit_path() {
@@ -228,7 +229,11 @@ mod tests {
         assert!(result.is_ok());
         // Compare file names since paths may be canonicalized differently
         let found_path = result.unwrap();
-        assert!(found_path.to_string_lossy().contains("0002_add_two_numbers"));
+        assert!(
+            found_path
+                .to_string_lossy()
+                .contains("0002_add_two_numbers")
+        );
         assert!(found_path.to_string_lossy().contains("solution.rs"));
 
         std::env::set_current_dir(original_dir).unwrap();
