@@ -254,11 +254,7 @@ pub fn html_to_markdown(html: &str) -> String {
     let mut output = String::new();
     let mut in_code_block = false;
 
-    fn traverse_node(
-        node: &scraper::ElementRef,
-        output: &mut String,
-        in_code_block: &mut bool,
-    ) {
+    fn traverse_node(node: &scraper::ElementRef, output: &mut String, in_code_block: &mut bool) {
         for child in node.children() {
             match child.value() {
                 Node::Text(text) => {
@@ -274,24 +270,40 @@ pub fn html_to_markdown(html: &str) -> String {
                             if !output.is_empty() && !output.ends_with('\n') {
                                 output.push('\n');
                             }
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('\n');
                         }
                         "strong" | "b" => {
                             output.push_str("**");
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push_str("**");
                         }
                         "em" | "i" => {
                             output.push('*');
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('*');
                         }
                         "code" => {
                             if !*in_code_block {
                                 output.push('`');
                             }
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             if !*in_code_block {
                                 output.push('`');
                             }
@@ -299,52 +311,88 @@ pub fn html_to_markdown(html: &str) -> String {
                         "pre" => {
                             output.push_str("\n```\n");
                             *in_code_block = true;
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             *in_code_block = false;
                             output.push_str("\n```\n");
                         }
                         "ul" | "ol" => {
                             output.push('\n');
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('\n');
                         }
                         "li" => {
                             output.push_str("\n- ");
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                         }
                         "br" => {
                             output.push('\n');
                         }
                         "h1" => {
                             output.push_str("\n# ");
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('\n');
                         }
                         "h2" => {
                             output.push_str("\n## ");
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('\n');
                         }
                         "h3" => {
                             output.push_str("\n### ");
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                             output.push('\n');
                         }
                         "a" => {
                             // Extract href and text
                             if let Some(href) = element.attr("href") {
                                 output.push('[');
-                                traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                                traverse_node(
+                                    &scraper::ElementRef::wrap(child).unwrap(),
+                                    output,
+                                    in_code_block,
+                                );
                                 output.push_str("](");
                                 output.push_str(href);
                                 output.push(')');
                             } else {
-                                traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                                traverse_node(
+                                    &scraper::ElementRef::wrap(child).unwrap(),
+                                    output,
+                                    in_code_block,
+                                );
                             }
                         }
                         _ => {
                             // For unknown tags, just traverse children
-                            traverse_node(&scraper::ElementRef::wrap(child).unwrap(), output, in_code_block);
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
                         }
                     }
                 }

@@ -10,6 +10,28 @@ use crate::{
     problem::{DifficultyLevel, Problem, ProblemDetail, ProblemList},
 };
 
+/// LeetCode API client for fetching problems and submitting solutions.
+///
+/// # Example
+///
+/// ```ignore
+/// use leetcode_cli::api::LeetCodeClient;
+/// use leetcode_cli::config::Config;
+///
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     let config = Config::load()?;
+///     let client = LeetCodeClient::new(config).await?;
+///     
+///     // Get a random easy problem
+///     let problem = client.get_random_problem(Some("easy"), None).await?;
+///     if let Some(p) = problem {
+///         println!("Found problem: {}", p.stat.question_title());
+///     }
+///     
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug, Clone)]
 pub struct LeetCodeClient {
     client: Client,
@@ -43,6 +65,9 @@ struct GraphQLQuery {
 }
 
 impl LeetCodeClient {
+    /// Create a new LeetCode client with the given configuration.
+    ///
+    /// This will fetch the problem list from LeetCode on initialization.
     pub async fn new(config: Config) -> Result<Self> {
         Self::new_with_base_url(config, "https://leetcode.com".to_string()).await
     }
@@ -114,10 +139,15 @@ impl LeetCodeClient {
     }
 
     /// Get all problems as a cheaply cloneable Arc reference.
+    ///
+    /// Returns an `Arc<Vec<Problem>>` which can be cloned cheaply.
     pub async fn get_all_problems(&self) -> Result<Arc<Vec<Problem>>> {
         Ok(self.problems.clone())
     }
 
+    /// Get a problem by its ID.
+    ///
+    /// Returns `None` if no problem with the given ID exists.
     pub async fn get_problem_by_id(&self, id: u32) -> Result<Option<Problem>> {
         Ok(self
             .problems
@@ -126,6 +156,17 @@ impl LeetCodeClient {
             .cloned())
     }
 
+    /// Get a random problem, optionally filtered by difficulty and/or tag.
+    ///
+    /// # Arguments
+    ///
+    /// * `difficulty` - Optional difficulty filter ("easy", "medium", or "hard")
+    /// * `tag` - Optional tag filter (e.g., "array", "dynamic-programming")
+    ///
+    /// # Note
+    ///
+    /// Tag filtering requires fetching problem details and is limited to the first 50
+    /// matching problems to avoid excessive API calls.
     pub async fn get_random_problem(
         &self,
         difficulty: Option<&str>,
@@ -151,7 +192,10 @@ impl LeetCodeClient {
             let mut tagged_problems = Vec::new();
 
             for problem in filtered.iter().take(50) {
-                match self.get_problem_detail(&problem.stat.question_title_slug()).await {
+                match self
+                    .get_problem_detail(&problem.stat.question_title_slug())
+                    .await
+                {
                     Ok(detail) => {
                         if let Some(ref tags) = detail.topic_tags {
                             if tags.iter().any(|t| {
@@ -169,7 +213,7 @@ impl LeetCodeClient {
             if tagged_problems.is_empty() {
                 return Ok(None);
             }
-            filtered = tagged_problems.iter().map(|p| *p).collect();
+            filtered = tagged_problems.to_vec();
         }
 
         // Pick random problem
@@ -177,6 +221,9 @@ impl LeetCodeClient {
         Ok(filtered.choose(&mut rng).cloned().cloned())
     }
 
+    /// Get detailed information about a problem by its slug.
+    ///
+    /// This includes the problem description, examples, code snippets, and tags.
     pub async fn get_problem_detail(&self, slug: &str) -> Result<ProblemDetail> {
         let query = GraphQLQuery {
             query: r#"
@@ -377,11 +424,14 @@ fn count_significant_braces(line: &str, current_depth: usize) -> isize {
 
     for (i, c) in line.chars().enumerate() {
         // Check for line comment start (but not inside strings)
-        if !in_string && !in_char && !in_line_comment {
-            if c == '/' && line.get(i + 1..i + 2) == Some("/") {
-                in_line_comment = true;
-                continue;
-            }
+        if !in_string
+            && !in_char
+            && !in_line_comment
+            && c == '/'
+            && line.get(i + 1..i + 2) == Some("/")
+        {
+            in_line_comment = true;
+            continue;
         }
 
         if in_line_comment {
@@ -405,7 +455,7 @@ fn count_significant_braces(line: &str, current_depth: usize) -> isize {
                 if !in_char {
                     // Check if this looks like a lifetime
                     let prev = i.checked_sub(1).and_then(|j| line.chars().nth(j));
-                    let is_lifetime = prev.map_or(false, |p| p.is_alphanumeric() || p == '_');
+                    let is_lifetime = prev.is_some_and(|p| p.is_alphanumeric() || p == '_');
                     if !is_lifetime {
                         in_char = true;
                     }
