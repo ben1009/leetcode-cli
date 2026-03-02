@@ -129,7 +129,10 @@ impl LeetCodeClient {
         let response = self.client.get(&url).send().await?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("Failed to fetch problems: {}", response.status()));
+            return Err(anyhow!(
+                "failed to fetch problem list: HTTP {}",
+                response.status()
+            ));
         }
 
         let problem_list: ProblemList = response.json().await?;
@@ -263,7 +266,8 @@ impl LeetCodeClient {
 
         if !response.status().is_success() {
             return Err(anyhow!(
-                "Failed to fetch problem detail: {}",
+                "failed to fetch problem detail for '{}': HTTP {}",
+                slug,
                 response.status()
             ));
         }
@@ -273,7 +277,9 @@ impl LeetCodeClient {
         let question = result
             .get("data")
             .and_then(|d| d.get("question"))
-            .ok_or_else(|| anyhow!("Invalid response format"))?;
+            .ok_or_else(|| {
+                anyhow!("invalid response format from LeetCode API: missing 'data.question' field")
+            })?;
 
         let detail: ProblemDetail = serde_json::from_value(question.clone())?;
         Ok(detail)
@@ -283,14 +289,14 @@ impl LeetCodeClient {
         // Check if authenticated
         if self.config.session_cookie.is_none() {
             return Err(anyhow!(
-                "Not authenticated. Please run 'leetcode-cli login' first."
+                "not authenticated: please run 'leetcode-cli login' first"
             ));
         }
 
         let problem = self
             .get_problem_by_id(problem_id)
             .await?
-            .ok_or_else(|| anyhow!("Problem not found"))?;
+            .ok_or_else(|| anyhow!("problem not found: ID {}", problem_id))?;
 
         let slug = &problem.stat.question_title_slug();
         let submit_url = format!("{}/problems/{}/submit/", self.base_url, slug);
@@ -310,14 +316,20 @@ impl LeetCodeClient {
         let response = self.client.post(&submit_url).json(&payload).send().await?;
 
         if !response.status().is_success() {
-            return Err(anyhow!("Failed to submit: {}", response.status()));
+            return Err(anyhow!(
+                "failed to submit solution for problem {}: HTTP {}",
+                problem_id,
+                response.status()
+            ));
         }
 
         let submit_response: serde_json::Value = response.json().await?;
         let submission_id = submit_response
             .get("submission_id")
             .and_then(|id| id.as_i64())
-            .ok_or_else(|| anyhow!("Failed to get submission ID"))?;
+            .ok_or_else(|| {
+                anyhow!("failed to get submission ID from response: field 'submission_id' missing or invalid")
+            })?;
 
         // Poll for result
         self.poll_submission_result(submission_id).await
@@ -366,7 +378,10 @@ impl LeetCodeClient {
             delay_secs = (delay_secs * 2).min(8);
         }
 
-        Err(anyhow!("Timeout waiting for submission result"))
+        Err(anyhow!(
+            "timeout waiting for submission result after {} attempts",
+            max_attempts
+        ))
     }
 
     pub(crate) fn extract_solution_code(code: &str) -> String {
@@ -818,7 +833,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("Invalid response format")
+                .contains("invalid response format")
         );
     }
 
@@ -847,7 +862,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("Not authenticated")
+                .contains("not authenticated")
         );
     }
 
@@ -931,7 +946,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("Problem not found")
+                .contains("problem not found")
         );
     }
 

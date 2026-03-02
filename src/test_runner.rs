@@ -46,8 +46,7 @@ impl TestRunner {
             self.run_cargo_test_legacy(&solution_rs).await
         } else {
             Err(anyhow!(
-                "Solution file not found. Expected either:\n  - {}/src/lib.rs (new format)\n  - {}/solution.rs (old format)",
-                self.problem_dir.display(),
+                "solution file not found in '{}': expected either src/lib.rs (new format) or solution.rs (legacy format)",
                 self.problem_dir.display()
             ))
         }

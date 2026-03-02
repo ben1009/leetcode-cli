@@ -99,11 +99,15 @@
   - Updated all tests in `commands/mod.rs` and `test_runner.rs` to use it
   - Eliminates repetitive directory change/restore pattern
 
-### 5. Error Message Consistency (Future)
-- [ ] Audit and standardize error message formatting
-  - Some use `format!()`, others use string literals with variables
-  - Some include problem IDs, others don't
-  - Standardize on including context (problem ID, file path, etc.)
+### 5. Error Message Consistency
+- [x] Standardized error message formatting across the codebase
+  - **Format**: lowercase start, include context (problem ID, file path, status codes)
+  - **Pattern**: `failed to <action>: <context>` for IO errors, `<what> not found: <context>` for missing items
+  - Updated 14 error messages in `api.rs`, `commands/`, and `test_runner.rs`
+  - Examples:
+    - `problem not found: ID 123` (was: `Problem not found`)
+    - `failed to fetch problem detail for 'two-sum': HTTP 404` (was: `Failed to fetch problem detail: 404`)
+    - `solution file not found in '/path': expected either src/lib.rs or solution.rs`
 
 ## CI Workflow Template
 

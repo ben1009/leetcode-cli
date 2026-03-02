@@ -90,13 +90,13 @@ pub fn find_problem_directory(problem_id: u32) -> Result<PathBuf> {
 
     match matches.len() {
         0 => anyhow::bail!(
-            "Could not find problem directory for problem {problem_id}. \
-             Make sure you're in the problem directory or specify the path."
+            "problem directory not found for ID {problem_id}: \
+             ensure you are in the problem directory or specify the path with --file"
         ),
         1 => Ok(matches[0].clone()),
         _ => anyhow::bail!(
-            "Multiple directories found for ID {problem_id}. \
-             Please specify the exact path"
+            "multiple directories found for ID {problem_id}: \
+             please specify the exact path with --file"
         ),
     }
 }
@@ -210,8 +210,8 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
         Ok(dir) => dir,
         Err(e) => {
             let msg = e.to_string();
-            if msg.contains("Multiple directories found") {
-                anyhow::bail!("{msg}. Please specify the exact path with --file");
+            if msg.contains("multiple directories found") {
+                anyhow::bail!("{msg} with --file");
             }
             return Err(e);
         }
@@ -229,7 +229,10 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
         return Ok(solution_rs);
     }
 
-    anyhow::bail!("Solution file not found. Expected either src/lib.rs or solution.rs")
+    anyhow::bail!(
+        "solution file not found in '{}': expected either src/lib.rs or solution.rs",
+        problem_dir.display()
+    )
 }
 
 /// A guard that changes to a temporary directory and restores the original on drop.
@@ -292,7 +295,7 @@ mod tests {
         let result = find_solution_file(999, None);
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("Could not find"));
+        assert!(err_msg.contains("problem directory not found"));
     }
 
     #[test]
@@ -360,7 +363,7 @@ mod tests {
         let result = find_solution_file(1, None);
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("Multiple directories found"));
+        assert!(err_msg.contains("multiple directories found"));
         assert!(err_msg.contains("--file"));
     }
 

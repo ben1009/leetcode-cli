@@ -10,7 +10,7 @@ pub async fn execute(client: &LeetCodeClient, id: u32) -> Result<()> {
     let problem = client
         .get_problem_by_id(id)
         .await?
-        .ok_or_else(|| anyhow::anyhow!("Problem not found"))?;
+        .ok_or_else(|| anyhow::anyhow!("problem not found: ID {id}"))?;
 
     let detail = client
         .get_problem_detail(&problem.stat.question_title_slug())
