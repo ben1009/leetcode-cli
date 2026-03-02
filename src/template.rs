@@ -13,28 +13,32 @@ impl<'a> CodeTemplate<'a> {
         Self { problem }
     }
 
-    pub fn write_rust_template(&self, path: &Path) -> Result<()> {
-        let template = self.generate_rust_template();
-        fs::write(path, template)?;
+    /// Generic helper to write generated content to a file.
+    ///
+    /// Eliminates the repetitive pattern of generating content and writing it.
+    fn write_file<F>(&self, path: &Path, content_generator: F) -> Result<()>
+    where
+        F: FnOnce(&Self) -> String,
+    {
+        let content = content_generator(self);
+        fs::write(path, content)?;
         Ok(())
+    }
+
+    pub fn write_rust_template(&self, path: &Path) -> Result<()> {
+        self.write_file(path, Self::generate_rust_template)
     }
 
     pub fn write_description(&self, path: &Path) -> Result<()> {
-        let description = self.generate_description();
-        fs::write(path, description)?;
-        Ok(())
+        self.write_file(path, Self::generate_description)
     }
 
     pub fn write_test_cases(&self, path: &Path) -> Result<()> {
-        let test_cases = self.generate_test_cases_json();
-        fs::write(path, test_cases)?;
-        Ok(())
+        self.write_file(path, Self::generate_test_cases_json)
     }
 
     pub fn write_cargo_toml(&self, path: &Path) -> Result<()> {
-        let cargo_toml = self.generate_cargo_toml();
-        fs::write(path, cargo_toml)?;
-        Ok(())
+        self.write_file(path, Self::generate_cargo_toml)
     }
 
     fn generate_rust_template(&self) -> String {

@@ -78,32 +78,38 @@
 ## Future Refactoring Opportunities
 
 ### 1. Reduce Code Duplication in HTML Parser
-- [ ] Extract helper for repeated `scraper::ElementRef::wrap(child).unwrap()` pattern in `problem.rs`
-  - 13 occurrences across the `html_to_markdown()` function
-  - Could add: `fn as_element(node: &NodeRef) -> Option<ElementRef>`
+- [x] Simplified `ElementRef::wrap()` call by removing unnecessary `.clone()` (Copy type)
+  - The HTML parser in `html_to_markdown()` already safely handles element nodes using `if let Some(ref elem) = child_elem` pattern
+  - Removed redundant `.clone()` call since `NodeRef` implements `Copy`
+  - Fixed clippy warning `clone_on_copy`
 
 ### 2. Unify Directory Finding Logic
-- [ ] Share `find_problem_by_id()` helper between `test_runner.rs` and `commands/mod.rs`
-  - Both traverse directories with similar patterns
-  - Different prefixes handled (`{:04}_` vs `{}_`)
-  - Both check for Cargo structure vs legacy structure
+- [x] Created shared `find_problem_directory()` in `commands/mod.rs`
+  - Extracted `find_problem_directories()` helper for internal use
+  - Updated `test_runner.rs` to use the shared function
+  - Properly handles both padded (`{:04}_`) and non-padded (`{}_`) prefixes
+  - Handles current directory Cargo/solution.rs fallback
 
 ### 3. Simplify Template Writing
-- [ ] Generic `write_file(path, content)` helper for `template.rs`
-  - Four functions follow identical pattern: `write_rust_template()`, `write_description()`, `write_test_cases()`, `write_cargo_toml()`
-  - Only difference is the content generator method called
+- [x] Added generic `write_file(path, content_generator)` helper in `template.rs`
+  - Consolidates `write_rust_template()`, `write_description()`, `write_test_cases()`, `write_cargo_toml()`
+  - Uses `FnOnce(&Self) -> String` for content generation
 
 ### 4. Standardize Test Setup
-- [ ] Extract shared temp directory setup pattern for tests
-  - Common pattern: `let temp_dir = TempDir::new().unwrap()` + `let original_dir = std::env::current_dir().unwrap()`
-  - Used in `commands/mod.rs`, `test_runner.rs`, `api.rs`
-  - Could use a `TestDirGuard` helper similar to `DirGuard`
+- [x] Extracted `TestDirGuard` helper in `commands/mod.rs`
+  - RAII guard that changes to temp directory and restores on drop
+  - Updated all tests in `commands/mod.rs` and `test_runner.rs` to use it
+  - Eliminates repetitive directory change/restore pattern
 
 ### 5. Error Message Consistency
-- [ ] Audit and standardize error message formatting
-  - Some use `format!()`, others use string literals with variables
-  - Some include problem IDs, others don't
-  - Standardize on including context (problem ID, file path, etc.)
+- [x] Standardized error message formatting across the codebase
+  - **Format**: lowercase start, include context (problem ID, file path, status codes)
+  - **Pattern**: `failed to <action>: <context>` for IO errors, `<what> not found: <context>` for missing items
+  - Updated 14 error messages in `api.rs`, `commands/`, and `test_runner.rs`
+  - Examples:
+    - `problem not found: ID 123` (was: `Problem not found`)
+    - `failed to fetch problem detail for 'two-sum': HTTP 404` (was: `Failed to fetch problem detail: 404`)
+    - `solution file not found in '/path': expected either src/lib.rs or solution.rs`
 
 ## CI Workflow Template
 

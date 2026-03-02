@@ -1,4 +1,4 @@
-use scraper::{Html, Node};
+use scraper::{ElementRef, Html, Node};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -63,7 +63,7 @@ impl Stat {
     pub fn question_title(&self) -> String {
         self.question__title
             .clone()
-            .unwrap_or_else(|| self.question__title_slug.replace("-", " "))
+            .unwrap_or_else(|| self.question__title_slug.replace('-', " "))
     }
 
     pub fn question_title_slug(&self) -> String {
@@ -265,45 +265,38 @@ pub fn html_to_markdown(html: &str) -> String {
                 }
                 Node::Element(element) => {
                     let tag_name = element.name();
+                    let child_elem = ElementRef::wrap(child);
                     match tag_name {
                         "p" => {
                             if !output.is_empty() && !output.ends_with('\n') {
                                 output.push('\n');
                             }
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('\n');
                         }
                         "strong" | "b" => {
                             output.push_str("**");
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push_str("**");
                         }
                         "em" | "i" => {
                             output.push('*');
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('*');
                         }
                         "code" => {
                             if !*in_code_block {
                                 output.push('`');
                             }
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             if !*in_code_block {
                                 output.push('`');
                             }
@@ -311,88 +304,68 @@ pub fn html_to_markdown(html: &str) -> String {
                         "pre" => {
                             output.push_str("\n```\n");
                             *in_code_block = true;
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             *in_code_block = false;
                             output.push_str("\n```\n");
                         }
                         "ul" | "ol" => {
                             output.push('\n');
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('\n');
                         }
                         "li" => {
                             output.push_str("\n- ");
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                         }
                         "br" => {
                             output.push('\n');
                         }
                         "h1" => {
                             output.push_str("\n# ");
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('\n');
                         }
                         "h2" => {
                             output.push_str("\n## ");
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('\n');
                         }
                         "h3" => {
                             output.push_str("\n### ");
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                             output.push('\n');
                         }
                         "a" => {
                             // Extract href and text
                             if let Some(href) = element.attr("href") {
                                 output.push('[');
-                                traverse_node(
-                                    &scraper::ElementRef::wrap(child).unwrap(),
-                                    output,
-                                    in_code_block,
-                                );
+                                if let Some(ref elem) = child_elem {
+                                    traverse_node(elem, output, in_code_block);
+                                }
                                 output.push_str("](");
                                 output.push_str(href);
                                 output.push(')');
-                            } else {
-                                traverse_node(
-                                    &scraper::ElementRef::wrap(child).unwrap(),
-                                    output,
-                                    in_code_block,
-                                );
+                            } else if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
                             }
                         }
                         _ => {
                             // For unknown tags, just traverse children
-                            traverse_node(
-                                &scraper::ElementRef::wrap(child).unwrap(),
-                                output,
-                                in_code_block,
-                            );
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
                         }
                     }
                 }
