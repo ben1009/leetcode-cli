@@ -22,8 +22,8 @@
 
 ## Code Organization
 
-- [ ] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
-- [ ] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
+- [x] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
+- [x] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
 
 ## Bug Fixes
 
@@ -41,13 +41,13 @@
 
 ## Unimplemented Features
 
-- [ ] Implement tag filtering in `get_random_problem()`
-- [ ] Use proper HTML parser for `clean_content()` (currently uses string replacement)
+- [x] Implement tag filtering in `get_random_problem()`
+- [x] Use proper HTML parser for `clean_content()` (currently uses string replacement)
 
 ## Error Handling
 
-- [ ] Improve `extract_solution_code()` - brace counting could fail on edge cases
-- [ ] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
+- [x] Improve `extract_solution_code()` - brace counting could fail on edge cases
+- [x] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
 
 ## Testing
 
@@ -69,11 +69,41 @@
 
 ## Performance
 
-- [ ] Optimize `get_all_problems()` to avoid cloning entire problem list
+- [x] Optimize `get_all_problems()` to avoid cloning entire problem list
 
 ## Documentation
 
-- [ ] Add usage examples to public APIs
+- [x] Add usage examples to public APIs
+
+## Future Refactoring Opportunities
+
+### 1. Reduce Code Duplication in HTML Parser
+- [ ] Extract helper for repeated `scraper::ElementRef::wrap(child).unwrap()` pattern in `problem.rs`
+  - 13 occurrences across the `html_to_markdown()` function
+  - Could add: `fn as_element(node: &NodeRef) -> Option<ElementRef>`
+
+### 2. Unify Directory Finding Logic
+- [ ] Share `find_problem_by_id()` helper between `test_runner.rs` and `commands/mod.rs`
+  - Both traverse directories with similar patterns
+  - Different prefixes handled (`{:04}_` vs `{}_`)
+  - Both check for Cargo structure vs legacy structure
+
+### 3. Simplify Template Writing
+- [ ] Generic `write_file(path, content)` helper for `template.rs`
+  - Four functions follow identical pattern: `write_rust_template()`, `write_description()`, `write_test_cases()`, `write_cargo_toml()`
+  - Only difference is the content generator method called
+
+### 4. Standardize Test Setup
+- [ ] Extract shared temp directory setup pattern for tests
+  - Common pattern: `let temp_dir = TempDir::new().unwrap()` + `let original_dir = std::env::current_dir().unwrap()`
+  - Used in `commands/mod.rs`, `test_runner.rs`, `api.rs`
+  - Could use a `TestDirGuard` helper similar to `DirGuard`
+
+### 5. Error Message Consistency
+- [ ] Audit and standardize error message formatting
+  - Some use `format!()`, others use string literals with variables
+  - Some include problem IDs, others don't
+  - Standardize on including context (problem ID, file path, etc.)
 
 ## CI Workflow Template
 

@@ -1,3 +1,4 @@
+use scraper::{Html, Node};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -238,26 +239,184 @@ impl ProblemDetail {
     }
 
     pub fn clean_content(&self) -> String {
-        self.content
-            .replace("<p>", "")
-            .replace("</p>", "\n\n")
-            .replace("<strong>", "**")
-            .replace("</strong>", "**")
-            .replace("<em>", "*")
-            .replace("</em>", "*")
-            .replace("<code>", "`")
-            .replace("</code>", "`")
-            .replace("<pre>", "```\n")
-            .replace("</pre>", "\n```")
-            .replace("<ul>", "")
-            .replace("</ul>", "")
-            .replace("<li>", "- ")
-            .replace("</li>", "")
-            .replace("&quot;", "\"")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&amp;", "&")
+        html_to_markdown(&self.content)
     }
+}
+
+/// Convert HTML content to Markdown using a proper HTML parser.
+///
+/// This function uses the `scraper` crate to parse HTML and convert
+/// common HTML elements to their Markdown equivalents.
+pub fn html_to_markdown(html: &str) -> String {
+    let document = Html::parse_fragment(html);
+    let root = document.root_element();
+
+    let mut output = String::new();
+    let mut in_code_block = false;
+
+    fn traverse_node(node: &scraper::ElementRef, output: &mut String, in_code_block: &mut bool) {
+        for child in node.children() {
+            match child.value() {
+                Node::Text(text) => {
+                    let text_str = text.trim();
+                    if !text_str.is_empty() || *in_code_block {
+                        output.push_str(&text.replace('\n', " "));
+                    }
+                }
+                Node::Element(element) => {
+                    let tag_name = element.name();
+                    match tag_name {
+                        "p" => {
+                            if !output.is_empty() && !output.ends_with('\n') {
+                                output.push('\n');
+                            }
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('\n');
+                        }
+                        "strong" | "b" => {
+                            output.push_str("**");
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push_str("**");
+                        }
+                        "em" | "i" => {
+                            output.push('*');
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('*');
+                        }
+                        "code" => {
+                            if !*in_code_block {
+                                output.push('`');
+                            }
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            if !*in_code_block {
+                                output.push('`');
+                            }
+                        }
+                        "pre" => {
+                            output.push_str("\n```\n");
+                            *in_code_block = true;
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            *in_code_block = false;
+                            output.push_str("\n```\n");
+                        }
+                        "ul" | "ol" => {
+                            output.push('\n');
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('\n');
+                        }
+                        "li" => {
+                            output.push_str("\n- ");
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                        }
+                        "br" => {
+                            output.push('\n');
+                        }
+                        "h1" => {
+                            output.push_str("\n# ");
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('\n');
+                        }
+                        "h2" => {
+                            output.push_str("\n## ");
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('\n');
+                        }
+                        "h3" => {
+                            output.push_str("\n### ");
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                            output.push('\n');
+                        }
+                        "a" => {
+                            // Extract href and text
+                            if let Some(href) = element.attr("href") {
+                                output.push('[');
+                                traverse_node(
+                                    &scraper::ElementRef::wrap(child).unwrap(),
+                                    output,
+                                    in_code_block,
+                                );
+                                output.push_str("](");
+                                output.push_str(href);
+                                output.push(')');
+                            } else {
+                                traverse_node(
+                                    &scraper::ElementRef::wrap(child).unwrap(),
+                                    output,
+                                    in_code_block,
+                                );
+                            }
+                        }
+                        _ => {
+                            // For unknown tags, just traverse children
+                            traverse_node(
+                                &scraper::ElementRef::wrap(child).unwrap(),
+                                output,
+                                in_code_block,
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    traverse_node(&root, &mut output, &mut in_code_block);
+
+    // Decode HTML entities
+    output
+        .replace("&quot;", "\"")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+        .replace("&nbsp;", " ")
+        .replace("&#39;", "'")
+        .replace("&#x27;", "'")
+        .replace("&#x2F;", "/")
+        .replace("&#x3C;", "<")
+        .replace("&#x3E;", ">")
+        .replace("&#x22;", "\"")
+        .replace("&#x26;", "&")
 }
 
 #[cfg(test)]
@@ -573,5 +732,113 @@ mod tests {
         }"#;
         let stat: Stat = serde_json::from_str(json).unwrap();
         assert_eq!(stat.question__article__live, None);
+    }
+
+    #[test]
+    fn test_html_to_markdown_basic() {
+        let html = "<p>Hello <strong>world</strong></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Hello **world**"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_emphasis() {
+        let html = "<p>Hello <em>world</em> and <i>italic</i></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Hello *world*"));
+        assert!(md.contains("and *italic*"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_code() {
+        let html = "<p>Use <code>print()</code> function</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Use `print()` function"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_preformatted() {
+        let html = "<pre>code block</pre>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("```"));
+        assert!(md.contains("code block"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_headings() {
+        let html = "<h1>Title</h1><h2>Subtitle</h2><h3>Section</h3>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("# Title"));
+        assert!(md.contains("## Subtitle"));
+        assert!(md.contains("### Section"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_links() {
+        let html = r#"<a href="https://example.com">Link text</a>"#;
+        let md = html_to_markdown(html);
+        assert!(md.contains("[Link text](https://example.com)"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_links_without_href() {
+        let html = "<a>Text without link</a>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Text without link"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_lists() {
+        let html = "<ul><li>Item 1</li><li>Item 2</li></ul>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("- Item 1"));
+        assert!(md.contains("- Item 2"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_line_break() {
+        let html = "<p>Line 1<br>Line 2</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Line 1\nLine 2"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_html_entities() {
+        let html = "&quot;quoted&quot; &lt;tag&gt; &amp; &nbsp; &#39;apos&#39;";
+        let md = html_to_markdown(html);
+        assert!(md.contains("\"quoted\""));
+        assert!(md.contains("<tag>"));
+        assert!(md.contains("&"));
+        assert!(md.contains(" ")); // &nbsp; becomes space
+        assert!(md.contains("'apos'"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_nested_elements() {
+        let html = "<p>Text with <strong>bold and <em>italic</em></strong></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("**bold and *italic***"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_empty() {
+        let html = "";
+        let md = html_to_markdown(html);
+        assert_eq!(md.trim(), "");
+    }
+
+    #[test]
+    fn test_html_to_markdown_unknown_tags() {
+        let html = "<div><span>Text in unknown tags</span></div>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("Text in unknown tags"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_code_in_pre() {
+        let html = "<pre><code>fn main() {}</code></pre>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("```"));
+        assert!(md.contains("fn main() {}"));
     }
 }

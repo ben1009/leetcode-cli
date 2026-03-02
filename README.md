@@ -1,6 +1,18 @@
 # LeetCode CLI
 
+[![Test](https://github.com/ben1009/leetcode-cli/workflows/Test/badge.svg)](https://github.com/ben1009/leetcode-cli/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/ben1009/leetcode-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/ben1009/leetcode-cli)
+
 A command-line tool written in Rust for LeetCode practice. Randomly select problems, download them locally, write code, and check answers.
+
+## Test Coverage & Quality
+
+| Metric | Status |
+|--------|--------|
+| **Line Coverage** | 77% (57 tests) |
+| **Tests Passing** | ✅ 57/57 |
+| **Clippy** | ✅ Clean |
+| **Format** | ✅ Clean |
 
 ## Features
 

@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use colored::*;
 
 mod api;
+mod commands;
 mod config;
 mod problem;
 mod template;
@@ -12,9 +12,6 @@ mod test_runner;
 
 use api::LeetCodeClient;
 use config::Config;
-use problem::{DifficultyLevel, Problem};
-use template::CodeTemplate;
-use test_runner::TestRunner;
 
 #[derive(Parser)]
 #[command(name = "leetcode-cli")]
@@ -100,405 +97,29 @@ async fn main() -> Result<()> {
             difficulty,
             tag,
         } => {
-            pick_problem(&client, id, difficulty, tag).await?;
+            commands::pick::execute(&client, id, difficulty, tag).await?;
         }
         Commands::Download { id, output } => {
-            download_problem(&client, id, output).await?;
+            commands::download::execute(&client, id, output).await?;
         }
         Commands::Test { id, test_file } => {
-            run_tests(id, test_file).await?;
+            commands::test::execute(id, test_file).await?;
         }
         Commands::Submit { id, file } => {
-            submit_solution(&client, id, file).await?;
+            commands::submit::execute(&client, id, file).await?;
         }
         Commands::Login { session, csrf } => {
-            login(session, csrf).await?;
+            commands::login::execute(session, csrf).await?;
         }
         Commands::List { difficulty, status } => {
-            list_problems(&client, difficulty, status).await?;
+            commands::list::execute(&client, difficulty, status).await?;
         }
         Commands::Show { id } => {
-            show_problem(&client, id).await?;
+            commands::show::execute(&client, id).await?;
         }
     }
 
     Ok(())
-}
-
-async fn pick_problem(
-    client: &LeetCodeClient,
-    id: Option<u32>,
-    difficulty: Option<String>,
-    tag: Option<String>,
-) -> Result<()> {
-    println!("{}", "Fetching problems...".cyan());
-
-    let problem = if let Some(problem_id) = id {
-        client.get_problem_by_id(problem_id).await?
-    } else {
-        client
-            .get_random_problem(difficulty.as_deref(), tag.as_deref())
-            .await?
-    };
-
-    if let Some(p) = problem {
-        print_problem_summary(&p);
-
-        // Ask if user wants to download
-        if prompt_confirm("\nDownload this problem? [Y/n]")? {
-            download_problem(client, p.stat.question_id, PathBuf::from(".")).await?;
-        }
-    } else {
-        println!("{}", "No problem found matching the criteria.".red());
-    }
-
-    Ok(())
-}
-
-async fn download_problem(client: &LeetCodeClient, id: u32, output: PathBuf) -> Result<()> {
-    println!("{}", format!("Downloading problem {id}...").cyan());
-
-    let problem = client
-        .get_problem_by_id(id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Problem not found"))?;
-
-    let detail = client
-        .get_problem_detail(&problem.stat.question_title_slug())
-        .await?;
-
-    // Create problem directory
-    let problem_dir = output.join(format!(
-        "{:04}_{}",
-        id,
-        problem.stat.question_title_slug().replace("-", "_")
-    ));
-    std::fs::create_dir_all(&problem_dir)?;
-
-    // Create src directory
-    let src_dir = problem_dir.join("src");
-    std::fs::create_dir_all(&src_dir)?;
-
-    // Generate code template
-    let template = CodeTemplate::new(&detail);
-    let code_file = src_dir.join("lib.rs");
-    template.write_rust_template(&code_file)?;
-
-    // Write Cargo.toml
-    let cargo_file = problem_dir.join("Cargo.toml");
-    template.write_cargo_toml(&cargo_file)?;
-
-    // Write problem description
-    let desc_file = problem_dir.join("README.md");
-    template.write_description(&desc_file)?;
-
-    // Write test cases
-    let test_file = problem_dir.join("test_cases.json");
-    template.write_test_cases(&test_file)?;
-
-    println!(
-        "{}",
-        format!("✓ Problem downloaded to: {}", problem_dir.display()).green()
-    );
-    println!("  - Solution: {}", code_file.display());
-    println!("  - Cargo.toml: {}", cargo_file.display());
-    println!("  - Description: {}", desc_file.display());
-    println!("  - Test cases: {}", test_file.display());
-    println!();
-    println!("{}", "To run tests:".cyan());
-    println!("  cd {}", problem_dir.display());
-    println!("  cargo test");
-
-    Ok(())
-}
-
-async fn run_tests(id: u32, test_file: Option<PathBuf>) -> Result<()> {
-    let runner = TestRunner::new(id, test_file)?;
-    runner.run().await?;
-    Ok(())
-}
-
-async fn submit_solution(client: &LeetCodeClient, id: u32, file: Option<PathBuf>) -> Result<()> {
-    let solution_file = if let Some(f) = file {
-        f
-    } else {
-        // Try to find the solution file automatically
-        // First, try new structure: src/lib.rs
-        let entries: Vec<_> = std::fs::read_dir(".")?
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_name()
-                    .to_string_lossy()
-                    .starts_with(&format!("{:04}_", id))
-            })
-            .collect();
-
-        if entries.is_empty() {
-            anyhow::bail!("Problem directory not found. Please specify with --file");
-        }
-
-        let problem_dir = entries[0].path();
-
-        // Try new structure first: src/lib.rs
-        let lib_rs = problem_dir.join("src/lib.rs");
-        if lib_rs.exists() {
-            lib_rs
-        } else {
-            // Try legacy structure: solution.rs
-            let solution_rs = problem_dir.join("solution.rs");
-            if solution_rs.exists() {
-                solution_rs
-            } else {
-                anyhow::bail!("Solution file not found. Expected either src/lib.rs or solution.rs");
-            }
-        }
-    };
-
-    println!(
-        "{}",
-        format!("Submitting solution for problem {id}...").cyan()
-    );
-    let result = client.submit(id, &solution_file).await?;
-    print_submission_result(&result);
-
-    Ok(())
-}
-
-async fn login(session: Option<String>, csrf: Option<String>) -> Result<()> {
-    let mut config = Config::load()?;
-
-    if let Some(s) = session {
-        config.session_cookie = Some(s);
-    } else {
-        config.session_cookie = Some(prompt_input("Please enter your LeetCode session cookie:")?);
-    }
-
-    if let Some(c) = csrf {
-        config.csrf_token = Some(c);
-    } else {
-        config.csrf_token = Some(prompt_input("Please enter your CSRF token:")?);
-    }
-
-    config.save()?;
-    println!("{}", "✓ Login credentials saved successfully!".green());
-    println!("{}", "You can now submit solutions to LeetCode.".green());
-
-    Ok(())
-}
-
-async fn list_problems(
-    client: &LeetCodeClient,
-    difficulty: Option<String>,
-    status: Option<String>,
-) -> Result<()> {
-    println!("{}", "Fetching problem list...".cyan());
-
-    let problems = client.get_all_problems().await?;
-
-    println!(
-        "\n{:<6} {:<50} {:<10} {:<10}",
-        "ID", "Title", "Difficulty", "Status"
-    );
-    println!("{}", "-".repeat(80));
-
-    for problem in problems {
-        let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
-            Ok(DifficultyLevel::Easy) => "Easy".green(),
-            Ok(DifficultyLevel::Medium) => "Medium".yellow(),
-            Ok(DifficultyLevel::Hard) => "Hard".red(),
-            Err(_) => "Unknown".normal(),
-        };
-
-        let status_str = if problem.status == Some("ac".to_string()) {
-            "✓ Solved".green()
-        } else if problem.status == Some("notac".to_string()) {
-            "~ Trying".yellow()
-        } else {
-            "○ New".normal()
-        };
-
-        if let Some(ref diff_filter) = difficulty {
-            if let Some(level) = DifficultyLevel::from_str(diff_filter) {
-                if problem.difficulty.level != level.level() {
-                    continue;
-                }
-            }
-        }
-
-        if let Some(ref status_filter) = status {
-            let should_show = match status_filter.to_lowercase().as_str() {
-                "solved" => problem.status == Some("ac".to_string()),
-                "attempting" => problem.status == Some("notac".to_string()),
-                "unsolved" => problem.status.is_none(),
-                _ => true,
-            };
-            if !should_show {
-                continue;
-            }
-        }
-
-        println!(
-            "{:<6} {:<50} {:<10} {:<10}",
-            problem.stat.question_id,
-            problem
-                .stat
-                .question_title()
-                .chars()
-                .take(48)
-                .collect::<String>(),
-            diff_str,
-            status_str
-        );
-    }
-
-    Ok(())
-}
-
-async fn show_problem(client: &LeetCodeClient, id: u32) -> Result<()> {
-    let problem = client
-        .get_problem_by_id(id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Problem not found"))?;
-
-    let detail = client
-        .get_problem_detail(&problem.stat.question_title_slug())
-        .await?;
-
-    println!("\n{}", "═".repeat(80).cyan());
-    println!(
-        "{} {}. {}",
-        "Problem".bold(),
-        problem.stat.question_id,
-        problem.stat.question_title().bold()
-    );
-    println!("{}", "═".repeat(80).cyan());
-
-    let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
-        Ok(DifficultyLevel::Easy) => "Easy".green(),
-        Ok(DifficultyLevel::Medium) => "Medium".yellow(),
-        Ok(DifficultyLevel::Hard) => "Hard".red(),
-        Err(_) => "Unknown".normal(),
-    };
-    println!("{} {}", "Difficulty:".bold(), diff_str);
-    println!(
-        "{} {:.1}%",
-        "Acceptance Rate:".bold(),
-        problem.stat.total_acs as f64 / problem.stat.total_submitted as f64 * 100.0
-    );
-    println!("{}", "─".repeat(80).cyan());
-
-    // Print description
-    println!(
-        "\n{}",
-        detail.content.replace("<p>", "").replace("</p>", "\n\n")
-    );
-
-    // Print examples if available
-    if let Some(examples) = &detail.example_testcases {
-        println!("{}", "Examples:".bold());
-        for (i, example) in examples.lines().enumerate() {
-            println!("  {} {}", format!("{}.", i + 1).cyan(), example);
-        }
-    }
-
-    Ok(())
-}
-
-fn print_problem_summary(problem: &Problem) {
-    println!("\n{}", "═".repeat(80).cyan());
-    println!(
-        "{} {}. {}",
-        "✓ Found Problem".bold().green(),
-        problem.stat.question_id,
-        problem.stat.question_title().bold()
-    );
-    println!("{}", "═".repeat(80).cyan());
-
-    let diff_str = match DifficultyLevel::try_from(problem.difficulty.level) {
-        Ok(DifficultyLevel::Easy) => "Easy".green(),
-        Ok(DifficultyLevel::Medium) => "Medium".yellow(),
-        Ok(DifficultyLevel::Hard) => "Hard".red(),
-        Err(_) => "Unknown".normal(),
-    };
-
-    println!("{} {}", "Difficulty:".bold(), diff_str);
-    println!(
-        "{} {:.1}%",
-        "Acceptance Rate:".bold(),
-        problem.stat.total_acs as f64 / problem.stat.total_submitted as f64 * 100.0
-    );
-    println!(
-        "{} {}/{}",
-        "Solved By:".bold(),
-        problem.stat.total_acs,
-        problem.stat.total_submitted
-    );
-    println!(
-        "{} https://leetcode.com/problems/{}",
-        "Link:".bold(),
-        problem.stat.question_title_slug()
-    );
-}
-
-fn print_submission_result(result: &api::SubmissionResult) {
-    match result.status_code {
-        10 => {
-            println!("{}", "✓ Accepted!".green().bold());
-            println!(
-                "  Runtime: {} ms (faster than {:.1}%)",
-                result.status_runtime, result.runtime_percentile
-            );
-            println!(
-                "  Memory: {} MB (less than {:.1}%)",
-                result.status_memory, result.memory_percentile
-            );
-        }
-        11 => {
-            println!("{}", "✗ Wrong Answer".red().bold());
-            println!("  {}", result.status_msg);
-            if let Some(ref output) = result.code_output {
-                println!("  Your output: {}", output);
-            }
-            if let Some(ref expected) = result.expected_output {
-                println!("  Expected: {}", expected);
-            }
-        }
-        14 => {
-            println!("{}", "✗ Time Limit Exceeded".red().bold());
-        }
-        15 => {
-            println!("{}", "✗ Runtime Error".red().bold());
-            if let Some(ref error) = result.full_runtime_error {
-                println!("  {}", error);
-            }
-        }
-        20 => {
-            println!("{}", "✗ Compile Error".red().bold());
-            if let Some(ref error) = result.full_compile_error {
-                println!("  {}", error);
-            }
-        }
-        _ => {
-            println!("{} {}", "Status:".bold(), result.status_msg);
-        }
-    }
-}
-
-/// Prompt the user for input with a message
-fn prompt_input(message: &str) -> Result<String> {
-    println!("{}", message.cyan());
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
-    Ok(input.trim().to_string())
-}
-
-/// Prompt the user for a yes/no confirmation
-/// Returns true if the user confirms (Y/n), false if not (n)
-fn prompt_confirm(message: &str) -> Result<bool> {
-    println!("{}", message.yellow());
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
-    Ok(input.trim().to_lowercase() != "n")
 }
 
 #[cfg(test)]

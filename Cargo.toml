@@ -39,5 +39,4 @@ ignored = [
     "handlebars",
     "cookie",
     "thiserror",
-    "scraper",
 ]

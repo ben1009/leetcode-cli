@@ -35,26 +35,35 @@ This document provides essential information for AI coding agents working on the
 ```
 leetcode-cli/
 ├── src/
-│   ├── main.rs          # CLI entry point and command handling (~500 lines)
-│   ├── api.rs           # LeetCode API client (~370 lines)
-│   ├── problem.rs       # Problem data structures (~240 lines)
-│   ├── template.rs      # Code template generation (~290 lines)
-│   ├── test_runner.rs   # Local test runner (~350 lines)
-│   └── config.rs        # Configuration management (~110 lines)
-├── examples/            # Example problems
-│   └── 0001_two_sum/    # Two Sum complete example
-├── Cargo.toml          # Project configuration
-├── Cargo.lock          # Dependency lock file
-├── Makefile.toml       # cargo-make tasks
-├── rust-toolchain.toml # Rust toolchain specification
-├── rustfmt.toml        # Rustfmt configuration
-├── install.sh          # Installation script
-├── README.md           # User documentation
-├── QUICKSTART.md       # Quick start guide
-├── USAGE_EXAMPLES.md   # Detailed usage examples
-├── CONTRIBUTING.md     # Contribution guidelines
-├── PROJECT_SUMMARY.md  # Project summary
-└── .github/workflows/  # CI/CD workflows
+│   ├── main.rs              # CLI entry point (~100 lines)
+│   ├── api.rs               # LeetCode API client (~370 lines)
+│   ├── problem.rs           # Problem data structures (~240 lines)
+│   ├── template.rs          # Code template generation (~290 lines)
+│   ├── test_runner.rs       # Local test runner (~350 lines)
+│   ├── config.rs            # Configuration management (~110 lines)
+│   └── commands/            # Subcommand modules
+│       ├── mod.rs           # Shared command utilities (~150 lines)
+│       ├── pick.rs          # Pick random problem (~40 lines)
+│       ├── download.rs      # Download problem (~70 lines)
+│       ├── test.rs          # Run tests (~20 lines)
+│       ├── submit.rs        # Submit solution (~30 lines)
+│       ├── login.rs         # Login to LeetCode (~35 lines)
+│       ├── list.rs          # List problems (~80 lines)
+│       └── show.rs          # Show problem details (~60 lines)
+├── examples/                # Example problems
+│   └── 0001_two_sum/        # Two Sum complete example
+├── Cargo.toml              # Project configuration
+├── Cargo.lock              # Dependency lock file
+├── Makefile.toml           # cargo-make tasks
+├── rust-toolchain.toml     # Rust toolchain specification
+├── rustfmt.toml            # Rustfmt configuration
+├── install.sh              # Installation script
+├── README.md               # User documentation
+├── QUICKSTART.md           # Quick start guide
+├── USAGE_EXAMPLES.md       # Detailed usage examples
+├── CONTRIBUTING.md         # Contribution guidelines
+├── PROJECT_SUMMARY.md      # Project summary
+└── .github/workflows/      # CI/CD workflows
 ```
 
 ## Build and Test Commands
@@ -139,14 +148,36 @@ wrap_comments = true
 ## Module Descriptions
 
 ### `main.rs`
-CLI entry point using Clap derive macros. Defines 7 subcommands:
-- `pick` - Random problem selection with optional difficulty/tag filters
-- `download` - Download problem to local directory
-- `test` - Run local tests for a problem
-- `submit` - Submit solution to LeetCode
-- `login` - Save LeetCode credentials
-- `list` - List problems with filters
-- `show` - Display problem details
+CLI entry point using Clap derive macros. Defines 7 subcommands and dispatches to command modules.
+
+### `commands/mod.rs`
+Shared utilities for all commands:
+- `prompt_input()` - Read user input from stdin
+- `prompt_confirm()` - Read yes/no confirmation
+- `print_problem_summary()` - Display problem overview
+- `print_submission_result()` - Display submission results
+- `find_solution_file()` - Locate solution file by problem ID
+
+### `commands/pick.rs`
+Random problem selection with optional difficulty/tag filters.
+
+### `commands/download.rs`
+Download problem to local directory with templates.
+
+### `commands/test.rs`
+Run local tests for a problem.
+
+### `commands/submit.rs`
+Submit solution to LeetCode.
+
+### `commands/login.rs`
+Save LeetCode credentials.
+
+### `commands/list.rs`
+List problems with difficulty and status filters.
+
+### `commands/show.rs`
+Display detailed problem description.
 
 ### `api.rs`
 LeetCode API client (`LeetCodeClient`):
