@@ -605,6 +605,27 @@ mod tests {
 
     #[tokio::test]
     #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_fetch_all_problems_http_error() {
+        let (mock_server, config) = setup_mock_server().await;
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&mock_server)
+            .await;
+
+        let result = LeetCodeClient::new_with_base_url(config, mock_server.uri()).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("failed to fetch problem list")
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
     async fn test_get_problem_by_id() {
         let (mock_server, config) = setup_mock_server().await;
 
@@ -947,6 +968,55 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("problem not found")
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_timeout() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return PENDING state to trigger timeout (max_attempts = 2 in test mode)
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "state": "PENDING",
+                "status_msg": "Pending"
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("timeout waiting for submission result")
         );
     }
 

@@ -79,6 +79,8 @@
 
 ### 1. Reduce Code Duplication in HTML Parser
 - [x] Simplified `ElementRef::wrap()` call by removing unnecessary `.clone()` (Copy type)
+  - The HTML parser in `html_to_markdown()` already safely handles element nodes using `if let Some(ref elem) = child_elem` pattern
+  - Removed redundant `.clone()` call since `NodeRef` implements `Copy`
   - Fixed clippy warning `clone_on_copy`
 
 ### 2. Unify Directory Finding Logic
