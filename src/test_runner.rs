@@ -6,6 +6,8 @@ use std::{
 use anyhow::{Result, anyhow};
 use colored::*;
 
+use crate::commands::find_problem_directory;
+
 pub struct TestRunner {
     problem_id: u32,
     #[allow(dead_code)]
@@ -15,51 +17,14 @@ pub struct TestRunner {
 
 impl TestRunner {
     pub fn new(problem_id: u32, test_file: Option<PathBuf>) -> Result<Self> {
-        // Find problem directory
-        let problem_dir = Self::find_problem_directory(problem_id)?;
+        // Find problem directory using the shared helper
+        let problem_dir = find_problem_directory(problem_id)?;
 
         Ok(Self {
             problem_id,
             test_file,
             problem_dir,
         })
-    }
-
-    fn find_problem_directory(problem_id: u32) -> Result<PathBuf> {
-        let current_dir = std::env::current_dir()?;
-
-        // Look for directory starting with problem_id
-        for entry in std::fs::read_dir(&current_dir)? {
-            let entry = entry?;
-            let file_name = entry.file_name();
-            let name = file_name.to_string_lossy();
-
-            if (name.starts_with(&format!("{:04}_", problem_id))
-                || name.starts_with(&format!("{}_", problem_id)))
-                && entry.file_type()?.is_dir()
-            {
-                return Ok(entry.path());
-            }
-        }
-
-        // Try current directory (check for new structure: Cargo.toml + src/lib.rs)
-        let cargo_toml = current_dir.join("Cargo.toml");
-        let lib_rs = current_dir.join("src/lib.rs");
-        if cargo_toml.exists() && lib_rs.exists() {
-            return Ok(current_dir);
-        }
-
-        // Try legacy structure: solution.rs in current directory
-        let solution_file = current_dir.join("solution.rs");
-        if solution_file.exists() {
-            return Ok(current_dir);
-        }
-
-        Err(anyhow!(
-            "Could not find problem directory for problem {}. \
-             Make sure you're in the problem directory or specify the path.",
-            problem_id
-        ))
     }
 
     pub async fn run(&self) -> Result<()> {
@@ -257,6 +222,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
+    use crate::commands::{TestDirGuard, find_problem_directory as find_problem_dir};
 
     #[test]
     #[serial_test::serial]
@@ -266,14 +232,10 @@ mod tests {
         fs::create_dir(&problem_dir).unwrap();
         fs::write(problem_dir.join("solution.rs"), "fn main() {}").unwrap();
 
-        // Change to temp directory for the test
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let _guard = TestDirGuard::new(temp_dir);
 
         let runner = TestRunner::new(1, None);
         assert!(runner.is_ok());
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
@@ -284,39 +246,35 @@ mod tests {
         fs::create_dir(&problem_dir).unwrap();
         fs::write(problem_dir.join("solution.rs"), "fn main() {}").unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        // Store the expected path before moving temp_dir into the guard
+        let expected_canonical = problem_dir.canonicalize().unwrap();
 
-        let found = TestRunner::find_problem_directory(1);
+        let _guard = TestDirGuard::new(temp_dir);
+
+        let found = find_problem_dir(1);
         assert!(found.is_ok());
         // Compare canonicalized paths to handle macOS /var vs /private/var symlink
         let found_canonical = found.unwrap().canonicalize().unwrap();
-        let expected_canonical = problem_dir.canonicalize().unwrap();
         assert_eq!(found_canonical, expected_canonical);
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
     #[serial_test::serial]
     fn test_find_problem_directory_cargo_structure() {
         let temp_dir = TempDir::new().unwrap();
+        let expected_path = temp_dir.path().canonicalize().unwrap();
         let src_dir = temp_dir.path().join("src");
         fs::create_dir(&src_dir).unwrap();
         fs::write(temp_dir.path().join("Cargo.toml"), "[package]").unwrap();
         fs::write(src_dir.join("lib.rs"), "pub fn test() {}").unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let _guard = TestDirGuard::new(temp_dir);
 
-        let found = TestRunner::find_problem_directory(999);
+        let found = find_problem_dir(999);
         assert!(found.is_ok());
         // Compare canonicalized paths to handle macOS /var vs /private/var symlink
         let found_canonical = found.unwrap().canonicalize().unwrap();
-        let expected_canonical = temp_dir.path().canonicalize().unwrap();
-        assert_eq!(found_canonical, expected_canonical);
-
-        std::env::set_current_dir(original_dir).unwrap();
+        assert_eq!(found_canonical, expected_path);
     }
 
     #[test]
@@ -324,13 +282,10 @@ mod tests {
     fn test_find_problem_directory_not_found() {
         let temp_dir = TempDir::new().unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let _guard = TestDirGuard::new(temp_dir);
 
-        let found = TestRunner::find_problem_directory(999);
+        let found = find_problem_dir(999);
         assert!(found.is_err());
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
@@ -341,16 +296,13 @@ mod tests {
         fs::create_dir(&problem_dir).unwrap();
         fs::write(problem_dir.join("solution.rs"), "").unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let _guard = TestDirGuard::new(temp_dir);
 
         let runner = TestRunner::new(1, None).unwrap();
 
         // This test mainly ensures format_test_output doesn't panic
         let output = "running 3 tests\ntest tests::test_one ... ok\ntest tests::test_two ... ok\ntest result: ok. 3 passed; 0 failed";
         runner.format_test_output(output);
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
@@ -361,15 +313,12 @@ mod tests {
         fs::create_dir(&problem_dir).unwrap();
         fs::write(problem_dir.join("solution.rs"), "").unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
+        let _guard = TestDirGuard::new(temp_dir);
 
         let runner = TestRunner::new(1, None).unwrap();
 
         let output = "running 2 tests\ntest tests::test_one ... ok\ntest tests::test_two ... FAILED\ntest result: FAILED. 1 passed; 1 failed";
         runner.format_test_output(output);
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
@@ -397,17 +346,7 @@ mod tests {
         }"#;
         fs::write(&test_file, test_content).unwrap();
 
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(&temp_dir).unwrap();
-
-        // Ensure we restore the directory even if the test panics
-        struct DirGuard(PathBuf);
-        impl Drop for DirGuard {
-            fn drop(&mut self) {
-                let _ = std::env::set_current_dir(&self.0);
-            }
-        }
-        let _guard = DirGuard(original_dir);
+        let _guard = TestDirGuard::new(temp_dir);
 
         let runner = TestRunner::new(1, None).unwrap();
         let result = runner.run_custom_tests(&test_file);
