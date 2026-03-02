@@ -12,7 +12,7 @@ clap = { version = "4.0", features = ["derive"] }
 colored = "2.0"
 confy = "2.0"
 console = "0.16"
-cookie = "0.17"
+cookie = "0.18"
 handlebars = "6.4"
 indicatif = "0.18"
 rand = "0.10"
