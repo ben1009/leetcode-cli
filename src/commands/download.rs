@@ -7,6 +7,38 @@ use colored::Colorize;
 
 use crate::{api::LeetCodeClient, template::CodeTemplate};
 
+/// Update workspace members in root Cargo.toml to include new problem patterns if needed.
+/// This ensures rust-analyzer can discover newly downloaded problems.
+fn update_workspace_if_needed(id: u32) -> Result<()> {
+    let cargo_toml = std::fs::read_to_string("Cargo.toml")?;
+
+    // Determine which pattern this problem ID belongs to
+    let pattern = match id {
+        0..=999 => "0*",
+        1000..=1999 => "1*",
+        2000..=2999 => "2*",
+        3000..=3999 => "3*",
+        4000..=4999 => "4*",
+        _ => return Ok(()), // Don't modify for very high IDs
+    };
+
+    // Check if pattern is already in members
+    if cargo_toml.contains(&format!("\"{pattern}\"")) {
+        return Ok(());
+    }
+
+    // Add the pattern to workspace members
+    let updated = cargo_toml.replace(
+        "members = [\".\", \"0*\"]",
+        &format!("members = [\".\", \"0*\", \"{pattern}\"]")
+    );
+
+    std::fs::write("Cargo.toml", updated)?;
+    println!("{}", format!("Updated workspace to include pattern '{}'", pattern).yellow());
+
+    Ok(())
+}
+
 /// Sanitize a string to be safe for use in a directory name.
 /// Removes path separators and other potentially dangerous characters.
 fn sanitize_dir_name(name: &str) -> String {
@@ -46,21 +78,19 @@ pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Resul
     let cargo_file = problem_dir.join("Cargo.toml");
     template.write_cargo_toml(&cargo_file)?;
 
-    // Write problem description
-    let desc_file = problem_dir.join("README.md");
-    template.write_description(&desc_file)?;
-
     // Write test cases
     let test_file = problem_dir.join("test_cases.json");
     template.write_test_cases(&test_file)?;
+
+    // Update workspace to include this problem pattern (for rust-analyzer)
+    update_workspace_if_needed(id)?;
 
     println!(
         "{}",
         format!("✓ Problem downloaded to: {}", problem_dir.display()).green()
     );
-    println!("  - Solution: {}", code_file.display());
+    println!("  - Solution (with description): {}", code_file.display());
     println!("  - Cargo.toml: {}", cargo_file.display());
-    println!("  - Description: {}", desc_file.display());
     println!("  - Test cases: {}", test_file.display());
     println!();
     println!("{}", "To run tests:".cyan());

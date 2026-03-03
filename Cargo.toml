@@ -6,6 +6,11 @@ authors = ["Your Name <your.email@example.com>"]
 description = "A CLI tool for LeetCode practice"
 license = "MIT"
 
+[workspace]
+resolver = "2"
+# Note: Add more patterns ("1*", "2*", etc.) as you download problems with IDs >= 1000
+members = [".", "0*"]
+
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
