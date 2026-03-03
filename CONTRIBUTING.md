@@ -87,7 +87,6 @@ leetcode-cli/
 
 - Use `anyhow` for error handling
 - Provide meaningful error messages
-- Use `thiserror` to define custom error types
 
 ### Documentation
 
