@@ -29,6 +29,7 @@ impl<'a> CodeTemplate<'a> {
         self.write_file(path, Self::generate_rust_template)
     }
 
+    #[allow(dead_code)]
     pub fn write_description(&self, path: &Path) -> Result<()> {
         self.write_file(path, Self::generate_description)
     }
@@ -88,6 +89,7 @@ impl<'a> CodeTemplate<'a> {
         template
     }
 
+    #[allow(dead_code)]
     fn generate_description(&self) -> String {
         let mut desc = String::new();
 
