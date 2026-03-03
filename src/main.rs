@@ -7,6 +7,7 @@ mod api;
 mod commands;
 mod config;
 mod problem;
+mod problems;
 mod template;
 mod test_runner;
 

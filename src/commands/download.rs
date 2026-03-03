@@ -7,48 +7,44 @@ use colored::Colorize;
 
 use crate::{api::LeetCodeClient, template::CodeTemplate};
 
-/// Update workspace members in root Cargo.toml to include new problem patterns if needed.
-/// This ensures rust-analyzer can discover newly downloaded problems.
-fn update_workspace_if_needed(id: u32) -> Result<()> {
-    let cargo_toml = std::fs::read_to_string("Cargo.toml")?;
-
-    // Determine which pattern this problem ID belongs to
-    let pattern = match id {
-        0..=999 => "0*",
-        1000..=1999 => "1*",
-        2000..=2999 => "2*",
-        3000..=3999 => "3*",
-        4000..=4999 => "4*",
-        _ => return Ok(()), // Don't modify for very high IDs
-    };
-
-    // Check if pattern is already in members
-    if cargo_toml.contains(&format!("\"{pattern}\"")) {
-        return Ok(());
-    }
-
-    // Add the pattern to workspace members
-    let updated = cargo_toml.replace(
-        "members = [\".\", \"0*\"]",
-        &format!("members = [\".\", \"0*\", \"{pattern}\"]")
-    );
-
-    std::fs::write("Cargo.toml", updated)?;
-    println!("{}", format!("Updated workspace to include pattern '{}'", pattern).yellow());
-
-    Ok(())
-}
-
-/// Sanitize a string to be safe for use in a directory name.
+/// Sanitize a string to be safe for use in a file/directory name.
 /// Removes path separators and other potentially dangerous characters.
-fn sanitize_dir_name(name: &str) -> String {
+fn sanitize_file_name(name: &str) -> String {
     name.chars()
         .filter(|c| !matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
         .collect()
 }
 
+/// Add a module declaration to src/problems/mod.rs if it doesn't exist
+fn add_module_declaration(module_name: &str) -> Result<()> {
+    let mod_path = PathBuf::from("src/problems/mod.rs");
+
+    // Create problems directory if it doesn't exist
+    std::fs::create_dir_all("src/problems")?;
+
+    let mod_decl = format!("pub mod {module_name};");
+
+    // Read existing content or create default
+    let content = if mod_path.exists() {
+        std::fs::read_to_string(&mod_path)?
+    } else {
+        "//! LeetCode problem solutions\n//!\n//! Each module contains the solution for a specific LeetCode problem.\n\n".to_string()
+    };
+
+    // Check if module already declared
+    if content.contains(&mod_decl) {
+        return Ok(());
+    }
+
+    // Append module declaration
+    let updated = format!("{content}{mod_decl}\n");
+    std::fs::write(&mod_path, updated)?;
+
+    Ok(())
+}
+
 /// Download problem to local workspace
-pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Result<()> {
+pub async fn execute(client: &LeetCodeClient, id: u32, _output: PathBuf) -> Result<()> {
     println!("{}", format!("Downloading problem {id}...").cyan());
 
     let problem = client
@@ -60,79 +56,75 @@ pub async fn execute(client: &LeetCodeClient, id: u32, output: PathBuf) -> Resul
         .get_problem_detail(&problem.stat.question_title_slug())
         .await?;
 
-    // Create problem directory (sanitize slug to prevent path traversal)
-    let slug = sanitize_dir_name(&problem.stat.question_title_slug());
-    let problem_dir = output.join(format!("{:04}_{}", id, slug.replace("-", "_")));
-    std::fs::create_dir_all(&problem_dir)?;
+    // Create module name: p0001_two_sum (prefix with 'p' for valid Rust identifier)
+    let slug = sanitize_file_name(&problem.stat.question_title_slug());
+    let module_name = format!("p{:04}_{}", id, slug.replace("-", "_"));
+    let file_name = format!("{module_name}.rs");
 
-    // Create src directory
-    let src_dir = problem_dir.join("src");
-    std::fs::create_dir_all(&src_dir)?;
+    // Ensure problems directory exists
+    let problems_dir = PathBuf::from("src/problems");
+    std::fs::create_dir_all(&problems_dir)?;
 
     // Generate code template
     let template = CodeTemplate::new(&detail);
-    let code_file = src_dir.join("lib.rs");
+    let code_file = problems_dir.join(&file_name);
     template.write_rust_template(&code_file)?;
 
-    // Write Cargo.toml
-    let cargo_file = problem_dir.join("Cargo.toml");
-    template.write_cargo_toml(&cargo_file)?;
+    // Add module declaration
+    add_module_declaration(&module_name)?;
 
-    // Write test cases
-    let test_file = problem_dir.join("test_cases.json");
+    // Write test cases to separate directory
+    let test_cases_dir = problems_dir.join("test_cases");
+    std::fs::create_dir_all(&test_cases_dir)?;
+    let test_file = test_cases_dir.join(format!("{module_name}.json"));
     template.write_test_cases(&test_file)?;
-
-    // Update workspace to include this problem pattern (for rust-analyzer)
-    update_workspace_if_needed(id)?;
 
     println!(
         "{}",
-        format!("✓ Problem downloaded to: {}", problem_dir.display()).green()
+        format!("✓ Problem downloaded: {}", code_file.display()).green()
     );
-    println!("  - Solution (with description): {}", code_file.display());
-    println!("  - Cargo.toml: {}", cargo_file.display());
+    println!("  - Solution: {}", code_file.display());
     println!("  - Test cases: {}", test_file.display());
     println!();
     println!("{}", "To run tests:".cyan());
-    println!("  cd {}", problem_dir.display());
-    println!("  cargo test");
+    println!("  cargo test {module_name}");
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::sanitize_file_name;
 
     #[test]
-    fn test_sanitize_dir_name_normal() {
-        assert_eq!(sanitize_dir_name("two-sum"), "two-sum");
-        assert_eq!(sanitize_dir_name("add-two-numbers"), "add-two-numbers");
+    fn test_sanitize_file_name_normal() {
+        assert_eq!(sanitize_file_name("two-sum"), "two-sum");
+        assert_eq!(sanitize_file_name("add-two-numbers"), "add-two-numbers");
     }
 
     #[test]
-    fn test_sanitize_dir_name_removes_path_traversal() {
-        assert_eq!(sanitize_dir_name("../../../etc/passwd"), "......etcpasswd");
-        assert_eq!(sanitize_dir_name("..\\\\..\\\\windows"), "....windows");
+    fn test_sanitize_file_name_removes_path_traversal() {
+        assert_eq!(sanitize_file_name("../../../etc/passwd"), "......etcpasswd");
+        assert_eq!(sanitize_file_name("..\\\\..\\\\windows"), "....windows");
     }
 
     #[test]
-    fn test_sanitize_dir_name_removes_invalid_chars() {
-        assert_eq!(sanitize_dir_name("test:name"), "testname");
-        assert_eq!(sanitize_dir_name("test*name"), "testname");
-        assert_eq!(sanitize_dir_name("test?name"), "testname");
-        assert_eq!(sanitize_dir_name("test\"name"), "testname");
-        assert_eq!(sanitize_dir_name("test<name>"), "testname");
-        assert_eq!(sanitize_dir_name("test|name"), "testname");
+    fn test_sanitize_file_name_removes_invalid_chars() {
+        assert_eq!(sanitize_file_name("test:name"), "testname");
+        assert_eq!(sanitize_file_name("test*name"), "testname");
+        assert_eq!(sanitize_file_name("test?name"), "testname");
+        assert_eq!(sanitize_file_name("test\"name"), "testname");
+        assert_eq!(sanitize_file_name("test<name>"), "testname");
+        assert_eq!(sanitize_file_name("test|name"), "testname");
     }
 
     #[test]
-    fn test_sanitize_dir_name_empty() {
-        assert_eq!(sanitize_dir_name(""), "");
+    fn test_sanitize_file_name_empty() {
+        assert_eq!(sanitize_file_name(""), "");
     }
 
     #[test]
-    fn test_sanitize_dir_name_all_invalid() {
-        assert_eq!(sanitize_dir_name("/\\:*?\"<>|"), "");
+    fn test_sanitize_file_name_all_invalid() {
+        assert_eq!(sanitize_file_name("/\\:*?\"<>|"), "");
     }
 }

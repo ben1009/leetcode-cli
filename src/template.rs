@@ -38,6 +38,7 @@ impl<'a> CodeTemplate<'a> {
         self.write_file(path, Self::generate_test_cases_json)
     }
 
+    #[allow(dead_code)]
     pub fn write_cargo_toml(&self, path: &Path) -> Result<()> {
         self.write_file(path, Self::generate_cargo_toml)
     }
@@ -185,6 +186,7 @@ impl<'a> CodeTemplate<'a> {
         serde_json::to_string_pretty(&test_file).unwrap_or_else(|_| "{}".to_string())
     }
 
+    #[allow(dead_code)]
     fn generate_cargo_toml(&self) -> String {
         let package_name = format!(
             "p{}_{}",
