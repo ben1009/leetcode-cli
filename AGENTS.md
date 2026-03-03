@@ -140,7 +140,7 @@ wrap_comments = true
 
 ### Coding Standards
 
-1. **Error Handling**: Use `anyhow` for application errors and `thiserror` for custom error types
+1. **Error Handling**: Use `anyhow` for application errors
 2. **Documentation**: Add doc comments for public APIs
 3. **Imports**: Group imports as `StdExternalCrate` (std, external, crate)
 4. **Clippy**: All warnings are treated as errors in CI (`-D warnings`)
@@ -302,11 +302,9 @@ All PRs must pass:
 | `reqwest` | HTTP client |
 | `serde` / `serde_json` | Serialization |
 | `anyhow` | Error handling |
-| `colored` | Terminal colors |
 | `confy` | Configuration management |
 | `rand` | Random problem selection |
-| `handlebars` | Template engine (available but unused) |
-| `scraper` | HTML parsing (available but unused) |
+| `scraper` | HTML parsing |
 
 ## Notes for AI Agents
 
