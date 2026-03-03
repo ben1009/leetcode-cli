@@ -11,16 +11,11 @@ anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 colored = "3.0"
 confy = "2.0"
-console = "0.16"
-cookie = "0.18"
-handlebars = "6.4"
-indicatif = "0.18"
 rand = "0.10"
 reqwest = { version = "0.13", features = ["json", "cookies"] }
 scraper = "0.25"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-thiserror = "2.0"
 tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
@@ -31,12 +26,3 @@ wiremock = "0.6"
 [profile.release]
 opt-level = 3
 lto = true
-
-[package.metadata.cargo-machete]
-ignored = [
-    "console",
-    "indicatif",
-    "handlebars",
-    "cookie",
-    "thiserror",
-]
