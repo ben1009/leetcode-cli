@@ -9,7 +9,6 @@ mod config;
 mod problem;
 mod problems;
 mod template;
-mod test_runner;
 
 use api::LeetCodeClient;
 use config::Config;
@@ -37,21 +36,10 @@ enum Commands {
         #[arg(short, long)]
         tag: Option<String>,
     },
-    /// Download problem to local workspace
-    Download {
-        /// Problem ID
-        id: u32,
-        /// Output directory
-        #[arg(short, long, default_value = ".")]
-        output: PathBuf,
-    },
     /// Run local tests
     Test {
         /// Problem ID
         id: u32,
-        /// Test case file
-        #[arg(short, long)]
-        test_file: Option<PathBuf>,
     },
     /// Submit solution to LeetCode
     Submit {
@@ -100,11 +88,8 @@ async fn main() -> Result<()> {
         } => {
             commands::pick::execute(&client, id, difficulty, tag).await?;
         }
-        Commands::Download { id, output } => {
-            commands::download::execute(&client, id, output).await?;
-        }
-        Commands::Test { id, test_file } => {
-            commands::test::execute(id, test_file).await?;
+        Commands::Test { id } => {
+            commands::test::execute(id).await?;
         }
         Commands::Submit { id, file } => {
             commands::submit::execute(&client, id, file).await?;
@@ -138,16 +123,7 @@ mod tests {
         // Just ensure it compiles and runs
         drop(pick);
 
-        let download = Commands::Download {
-            id: 1,
-            output: PathBuf::from("."),
-        };
-        drop(download);
-
-        let test = Commands::Test {
-            id: 1,
-            test_file: None,
-        };
+        let test = Commands::Test { id: 1 };
         drop(test);
 
         let submit = Commands::Submit { id: 1, file: None };

@@ -9,8 +9,8 @@ A command-line tool written in Rust for LeetCode practice. Randomly select probl
 
 | Metric | Status |
 |--------|--------|
-| **Line Coverage** | 77% (57 tests) |
-| **Tests Passing** | ✅ 57/57 |
+| **Line Coverage** | 77% (110 tests) |
+| **Tests Passing** | ✅ 110/110 |
 | **Clippy** | ✅ Clean |
 | **Format** | ✅ Clean |
 
@@ -119,37 +119,14 @@ leetcode-cli pick --difficulty hard
 leetcode-cli pick --id 1
 ```
 
-### 3. Download Problem
+### 3. Local Testing
 
 ```bash
-# Download specific problem to current directory
-leetcode-cli download --id 1
-
-# Download to specific directory
-leetcode-cli download --id 1 --output ./problems
-```
-
-After download, the following directory structure is created:
-```
-0001_two_sum/
-├── src/
-│   └── lib.rs       # Code template
-├── Cargo.toml       # Project configuration
-├── README.md        # Problem description
-└── test_cases.json  # Test cases
-```
-
-### 4. Local Testing
-
-```bash
-# Run tests in problem directory
+# Run tests for a problem
 leetcode-cli test --id 1
-
-# Use custom test file
-leetcode-cli test --id 1 --test-file custom_tests.json
 ```
 
-### 5. Submit Solution
+### 4. Submit Solution
 
 ```bash
 # Submit current problem solution
@@ -159,7 +136,7 @@ leetcode-cli submit --id 1
 leetcode-cli submit --id 1 --file ./my_solution.rs
 ```
 
-### 6. View Problem List
+### 5. View Problem List
 
 ```bash
 # View all problems
@@ -174,7 +151,7 @@ leetcode-cli list --status attempting  # Attempting
 leetcode-cli list --status unsolved    # Unsolved
 ```
 
-### 7. View Problem Details
+### 6. View Problem Details
 
 ```bash
 leetcode-cli show --id 1
@@ -185,33 +162,30 @@ leetcode-cli show --id 1
 When downloading a problem, a Rust code template is automatically generated:
 
 ```rust
-// Problem: Two Sum
-// Difficulty: Easy
-// URL: https://leetcode.com/problems/two-sum/
+#![allow(dead_code)]
 
-// Time Complexity: O()
-// Space Complexity: O()
+/// Problem: Two Sum
+/// Difficulty: Easy
+/// URL: https://leetcode.com/problems/two-sum/
+///
+/// [Problem description in doc comments...]
+pub struct Solution;
 
-// LeetCode provided code snippet
 impl Solution {
     pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {
-        // TODO: Implement your solution
+        // TODO: Implement your solution here
     }
 }
 
-// Main function for local testing
-fn main() {
-    // Local testing code
-}
-
-// Unit tests
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_case_1() {
-        // Test case
+        // Input: nums = [2,7,11,15], target = 9
+        // Expected: [0,1]
+        // TODO: Add test implementation
     }
 }
 ```
@@ -225,17 +199,13 @@ leetcode-cli login
 # 2. Randomly select a medium difficulty problem
 leetcode-cli pick --difficulty medium
 
-# 3. Download problem (if not auto-downloaded)
-leetcode-cli download --id 2
+# 3. Enter problem directory and write solution
+vim src/problems/p0002_add_two_numbers.rs
 
-# 4. Enter problem directory and write solution
-cd 0002_add_two_numbers
-vim src/lib.rs
-
-# 5. Local testing
+# 4. Local testing
 leetcode-cli test --id 2
 
-# 6. Submit solution
+# 5. Submit solution
 leetcode-cli submit --id 2
 ```
 
@@ -261,7 +231,6 @@ editor = "vim"
 | `leetcode-cli login` | Login to LeetCode |
 | `leetcode-cli pick` | Random problem selection |
 | `leetcode-cli pick -d medium` | Random medium difficulty problem |
-| `leetcode-cli download -i 1` | Download problem |
 | `leetcode-cli test -i 1` | Local testing |
 | `leetcode-cli submit -i 1` | Submit solution |
 | `leetcode-cli list` | View problem list |

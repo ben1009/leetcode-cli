@@ -34,25 +34,35 @@ A fully functional LeetCode command line tool written in Rust. Supports random p
 ```
 leetcode-cli/
 ├── src/
-│   ├── main.rs          # CLI entry (454 lines)
-│   ├── api.rs           # LeetCode API client (351 lines)
-│   ├── problem.rs       # Data structures (209 lines)
-│   ├── template.rs      # Code template generation (252 lines)
-│   ├── test_runner.rs   # Test runner (286 lines)
-│   └── config.rs        # Configuration management (105 lines)
-├── examples/            # Example problems
-│   └── 0001_two_sum/    # Two Sum complete example
-├── Cargo.toml          # Project configuration
-├── Makefile            # Build scripts
-├── install.sh          # Installation script
-└── docs/               # Documentation
-    ├── README.md
-    ├── QUICKSTART.md
-    ├── USAGE_EXAMPLES.md
-    └── CONTRIBUTING.md
+│   ├── main.rs              # CLI entry (~100 lines)
+│   ├── api.rs               # LeetCode API client (~370 lines)
+│   ├── problem.rs           # Problem data structures (~240 lines)
+│   ├── template.rs          # Code template generation (~290 lines)
+
+│   ├── config.rs            # Configuration management (~110 lines)
+│   ├── problems/            # Problem solutions
+│   │   ├── mod.rs           # Module declarations
+│   │   ├── p0001_two_sum.rs # Problem solution files
+
+│   └── commands/            # Subcommand modules
+│       ├── mod.rs           # Shared utilities
+│       ├── pick.rs          # Pick and download
+│       ├── test.rs          # Run tests
+│       ├── submit.rs        # Submit solution
+│       ├── login.rs         # Login to LeetCode
+│       ├── list.rs          # List problems
+│       └── show.rs          # Show problem details
+├── Cargo.toml              # Project configuration
+├── Makefile.toml           # cargo-make tasks
+├── install.sh              # Installation script
+├── README.md               # User documentation
+├── QUICKSTART.md           # Quick start guide
+├── USAGE_EXAMPLES.md       # Detailed usage examples
+├── CONTRIBUTING.md         # Contribution guidelines
+└── AGENTS.md               # Agent documentation
 ```
 
-**Total Code**: ~1657 lines of Rust code
+**Total Code**: ~2000 lines of Rust code
 
 ### Core Modules
 
@@ -78,14 +88,7 @@ leetcode-cli/
 - Test case JSON generation
 - LeetCode code snippet integration
 
-#### 4. Test Runner (`test_runner.rs`)
-
-- Cargo test integration
-- Temporary project creation
-- Test result formatting
-- Custom test support
-
-#### 5. Configuration (`config.rs`)
+#### 4. Configuration (`config.rs`)
 
 - User configuration persistence
 - Cookie management
@@ -98,8 +101,7 @@ leetcode-cli/
 leetcode-cli <command>
 
 Commands:
-  pick      Random problem selection
-  download  Download problem
+  pick      Pick random problem (auto-downloads)
   test      Local testing
   submit    Submit solution
   login     Login
@@ -111,8 +113,8 @@ Commands:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Random Pick │ → │   Download   │ → │  Write Code  │
-│   (pick)    │    │  (download) │    │  (solution) │
+│  Random Pick │ → │  Auto Download → │  Write Code  │
+│   (pick)    │    │               │    │  (solution) │
 └─────────────┘    └─────────────┘    └──────┬──────┘
                                              ↓
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -141,11 +143,8 @@ cp target/release/leetcode-cli ~/.local/bin/
 # Login
 leetcode-cli login
 
-# Randomly select a medium difficulty problem
+# Randomly select a medium difficulty problem (auto-downloads)
 leetcode-cli pick --difficulty medium
-
-# Download problem
-leetcode-cli download --id 1
 
 # Local testing
 leetcode-cli test --id 1

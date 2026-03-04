@@ -8,7 +8,7 @@ This document provides detailed usage examples for LeetCode CLI.
 
 ```bash
 # Compile and install
-make install
+cargo make install
 
 # Verify installation
 leetcode-cli --version
@@ -55,26 +55,7 @@ leetcode-cli pick -i 42
 
 ## Problem Download
 
-### Basic Download
-
-```bash
-# Download to current directory
-leetcode-cli download --id 1
-
-# This creates directory: ./0001_two_sum/
-```
-
-### Specify Output Directory
-
-```bash
-# Download to specific directory
-leetcode-cli download -i 1 -o ~/leetcode/problems
-
-# Or
-leetcode-cli download --id 42 --output ./problems/array
-```
-
-### Directory Structure After Download
+When you pick a problem, it is automatically downloaded. The directory structure is:
 
 Problems are stored in `src/problems/` as individual Rust modules:
 
@@ -83,9 +64,7 @@ src/problems/
 ├── mod.rs                    # Module declarations (auto-generated)
 ├── p0001_two_sum.rs          # Problem solution with doc comments
 ├── p0002_add_two_numbers.rs  # Another problem
-└── test_cases/               # Test cases in JSON
-    ├── p0001_two_sum.json
-    └── p0002_add_two_numbers.json
+
 ```
 
 ## Local Development
@@ -222,8 +201,8 @@ leetcode-cli list -s unsolved
 # 2. Select interesting problem to view details
 leetcode-cli show -i 42
 
-# 3. Download problem
-leetcode-cli download -i 42
+# 3. Pick the problem (auto-downloads)
+leetcode-cli pick -i 42
 
 # 4. Solve and test
 vim src/problems/p0042_problem_name.rs
@@ -267,31 +246,11 @@ echo "Start solving! Edit $LATEST_PROBLEM"
 
 for i in {1..50}; do
     echo "Downloading problem $i..."
-    leetcode-cli download -i $i
+    leetcode-cli pick -i $i
 done
 
 # All problems will be in src/problems/
 ls -la src/problems/
-```
-
-### Custom Tests
-
-```bash
-# Create custom test file
-cat > custom_tests.json << 'EOF'
-{
-  "test_cases": [
-    {
-      "input": "[1,2,3]",
-      "expected": "6",
-      "explanation": "Edge case test"
-    }
-  ]
-}
-EOF
-
-# Use custom tests
-leetcode-cli test -i 1 --test-file custom_tests.json
 ```
 
 ### Editor Integration
@@ -354,7 +313,6 @@ cargo clippy
 1. **Use aliases to speed up workflow**
    ```bash
    alias lcp='leetcode-cli pick'
-   alias lcd='leetcode-cli download'
    alias lct='leetcode-cli test'
    alias lcs='leetcode-cli submit'
    ```
@@ -363,7 +321,7 @@ cargo clippy
    ```bash
    # solve.sh
    ID=$1
-   leetcode-cli download -i $ID
+   leetcode-cli pick -i $ID
    # Find the downloaded problem file
    PROBLEM_FILE=$(ls -t src/problems/p*.rs | head -1)
    $EDITOR "$PROBLEM_FILE"

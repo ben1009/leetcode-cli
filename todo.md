@@ -22,7 +22,7 @@
 
 ## Code Organization
 
-- [x] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/download.rs`)
+- [x] Split main.rs into subcommand modules (e.g., `commands/pick.rs`, `commands/test.rs`)
 - [x] Remove dead code: `check_solution_status`, `create_test_script`, `create_cargo_toml`
 
 ## Bug Fixes
@@ -58,10 +58,9 @@
   - [x] `problem.rs` - **98.21%** - Stat methods, ProblemDetail methods, custom deserializer
   - [x] `config.rs` - **79.53%** - Editor/workspace getters, serde roundtrip
   - [x] `template.rs` - **95.61%** - File writing, individual generators
-  - [x] `test_runner.rs` - **71.12%** - Directory finding, output formatting, custom tests
   - [x] `main.rs` - Command variants
-- [x] Fix flaky `test_run_custom_tests` that changes working directory
-  - Added `DirGuard` struct to ensure directory is restored on panic
+  - [x] `commands/test.rs` - Test execution with output formatting
+
 - [x] Fix `parse_test_cases()` bug - splits by lines then tries to split by newlines again
   - Now correctly splits by blank lines (`\n\n`) to separate test cases
 
@@ -86,26 +85,26 @@
 ### 2. Unify Directory Finding Logic
 - [x] Created shared `find_problem_directory()` in `commands/mod.rs`
   - Extracted `find_problem_directories()` helper for internal use
-  - Updated `test_runner.rs` to use the shared function
+
   - Properly handles both padded (`{:04}_`) and non-padded (`{}_`) prefixes
   - Handles current directory Cargo/solution.rs fallback
 
 ### 3. Simplify Template Writing
 - [x] Added generic `write_file(path, content_generator)` helper in `template.rs`
-  - Consolidates `write_rust_template()`, `write_description()`, `write_test_cases()`, `write_cargo_toml()`
+  - Consolidates `write_rust_template()`, `write_description()`, `write_cargo_toml()`
   - Uses `FnOnce(&Self) -> String` for content generation
 
 ### 4. Standardize Test Setup
 - [x] Extracted `TestDirGuard` helper in `commands/mod.rs`
   - RAII guard that changes to temp directory and restores on drop
-  - Updated all tests in `commands/mod.rs` and `test_runner.rs` to use it
+  - Updated all tests in `commands/mod.rs` to use it
   - Eliminates repetitive directory change/restore pattern
 
 ### 5. Error Message Consistency
 - [x] Standardized error message formatting across the codebase
   - **Format**: lowercase start, include context (problem ID, file path, status codes)
   - **Pattern**: `failed to <action>: <context>` for IO errors, `<what> not found: <context>` for missing items
-  - Updated 14 error messages in `api.rs`, `commands/`, and `test_runner.rs`
+  - Updated 14 error messages in `api.rs` and `commands/`
   - Examples:
     - `problem not found: ID 123` (was: `Problem not found`)
     - `failed to fetch problem detail for 'two-sum': HTTP 404` (was: `Failed to fetch problem detail: 404`)

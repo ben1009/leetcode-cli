@@ -2,7 +2,6 @@
 //!
 //! Each submodule handles a specific CLI subcommand.
 
-pub mod download;
 pub mod list;
 pub mod login;
 pub mod pick;
