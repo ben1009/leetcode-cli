@@ -8,8 +8,7 @@ license = "MIT"
 
 [workspace]
 resolver = "2"
-# Note: Add more patterns ("1*", "2*", etc.) as you download problems with IDs >= 1000
-members = [".", "0*"]
+members = ["."]
 
 [dependencies]
 anyhow = "1.0"

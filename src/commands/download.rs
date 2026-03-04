@@ -94,7 +94,12 @@ pub async fn execute(client: &LeetCodeClient, id: u32, _output: PathBuf) -> Resu
 
 #[cfg(test)]
 mod tests {
-    use super::sanitize_file_name;
+    use std::fs;
+
+    use tempfile::TempDir;
+
+    use super::*;
+    use crate::commands::TestDirGuard;
 
     #[test]
     fn test_sanitize_file_name_normal() {
@@ -126,5 +131,70 @@ mod tests {
     #[test]
     fn test_sanitize_file_name_all_invalid() {
         assert_eq!(sanitize_file_name("/\\:*?\"<>|"), "");
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_add_module_declaration_creates_new_file() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create src directory
+        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+
+        let _guard = TestDirGuard::new(temp_dir);
+
+        let result = add_module_declaration("p0001_two_sum");
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        assert!(content.contains("pub mod p0001_two_sum;"));
+        assert!(content.contains("//! LeetCode problem solutions"));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_add_module_declaration_appends_to_existing() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create existing mod.rs
+        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::write(
+            temp_dir.path().join("src/problems/mod.rs"),
+            "pub mod p0001_two_sum;\n",
+        )
+        .unwrap();
+
+        let _guard = TestDirGuard::new(temp_dir);
+
+        let result = add_module_declaration("p0002_add_two_numbers");
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        assert!(content.contains("pub mod p0001_two_sum;"));
+        assert!(content.contains("pub mod p0002_add_two_numbers;"));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_add_module_declaration_skips_duplicate() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create existing mod.rs with the module already declared
+        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::write(
+            temp_dir.path().join("src/problems/mod.rs"),
+            "pub mod p0001_two_sum;\n",
+        )
+        .unwrap();
+
+        let _guard = TestDirGuard::new(temp_dir);
+
+        let result = add_module_declaration("p0001_two_sum");
+        assert!(result.is_ok());
+
+        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        // Should only appear once
+        let count = content.matches("pub mod p0001_two_sum;").count();
+        assert_eq!(count, 1);
     }
 }

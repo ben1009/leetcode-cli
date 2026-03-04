@@ -229,6 +229,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_find_solution_file_multiple_ids() {
         let temp_dir = TempDir::new().unwrap();
 
