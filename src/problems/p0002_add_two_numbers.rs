@@ -92,10 +92,36 @@ impl Solution {
 
 #[cfg(test)]
 mod tests {
+    use crate::problems::p0002_add_two_numbers::{ListNode, Solution};
+
     #[test]
     fn test_case_1() {
         // Input: [2,4,3]
         // Expected: [5,6,4]
-        // TODO: Add test implementation
+        assert_eq!(
+            Solution::add_two_numbers(
+                Some(Box::new(ListNode {
+                    val: 2,
+                    next: Some(Box::new(ListNode {
+                        val: 4,
+                        next: Some(Box::new(ListNode { val: 3, next: None }))
+                    }))
+                })),
+                Some(Box::new(ListNode {
+                    val: 5,
+                    next: Some(Box::new(ListNode {
+                        val: 6,
+                        next: Some(Box::new(ListNode { val: 4, next: None }))
+                    }))
+                }))
+            ),
+            Some(Box::new(ListNode {
+                val: 7,
+                next: Some(Box::new(ListNode {
+                    val: 0,
+                    next: Some(Box::new(ListNode { val: 8, next: None }))
+                }))
+            }))
+        );
     }
 }

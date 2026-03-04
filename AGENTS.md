@@ -41,6 +41,10 @@ leetcode-cli/
 │   ├── template.rs          # Code template generation (~290 lines)
 │   ├── test_runner.rs       # Local test runner (~350 lines)
 │   ├── config.rs            # Configuration management (~110 lines)
+│   ├── problems/            # Problem solutions (downloaded)
+│   │   ├── mod.rs           # Module declarations
+│   │   ├── p0001_two_sum.rs # Problem solution files
+│   │   └── test_cases/      # Test cases in JSON
 │   └── commands/            # Subcommand modules
 │       ├── mod.rs           # Shared command utilities (~150 lines)
 │       ├── pick.rs          # Pick random problem (~40 lines)
@@ -50,8 +54,6 @@ leetcode-cli/
 │       ├── login.rs         # Login to LeetCode (~35 lines)
 │       ├── list.rs          # List problems (~80 lines)
 │       └── show.rs          # Show problem details (~60 lines)
-├── examples/                # Example problems
-│   └── 0001_two_sum/        # Two Sum complete example
 ├── Cargo.toml              # Project configuration
 ├── Cargo.lock              # Dependency lock file
 ├── Makefile.toml           # cargo-make tasks
@@ -196,16 +198,13 @@ Data structures for LeetCode problems:
 
 ### `template.rs`
 Generates problem templates:
-- `CodeTemplate::write_rust_template()` - Generates `src/lib.rs`
-- `CodeTemplate::write_cargo_toml()` - Generates `Cargo.toml`
-- `CodeTemplate::write_description()` - Generates `README.md`
-- `CodeTemplate::write_test_cases()` - Generates `test_cases.json`
+- `CodeTemplate::write_rust_template()` - Generates `src/problems/p{id}_{slug}.rs`
+- `CodeTemplate::write_test_cases()` - Generates `src/problems/test_cases/p{id}_{slug}.json`
 
 ### `test_runner.rs`
 Local test execution:
-- `TestRunner::find_problem_directory()` - Locates problem by ID
-- `TestRunner::run_cargo_test_in_dir()` - Runs `cargo test` in problem dir
-- Supports both new structure (`src/lib.rs`) and legacy (`solution.rs`)
+- `TestRunner::new()` - Creates test runner for a problem
+- `TestRunner::run()` - Runs `cargo test p{id}::` for specific problem module
 
 ### `config.rs`
 Configuration management using Confy:
@@ -238,13 +237,14 @@ Each module has inline tests in `#[cfg(test)]` modules:
 When a problem is downloaded, it creates:
 
 ```
-0001_two_sum/
-├── src/
-│   └── lib.rs         # Rust solution with tests
-├── Cargo.toml         # Project config
-├── README.md          # Problem description
-└── test_cases.json    # Test cases in JSON format
+src/problems/
+├── mod.rs                    # Updated with new module declaration
+├── p0001_two_sum.rs          # Rust solution with doc comments and tests
+└── test_cases/
+    └── p0001_two_sum.json    # Test cases in JSON format
 ```
+
+Problems are stored as individual Rust modules in `src/problems/`, with the problem description embedded as doc comments in the solution file.
 
 ## CI/CD Configuration
 
@@ -313,4 +313,4 @@ All PRs must pass:
 3. **Test with nextest**: Prefer `cargo nextest run` over `cargo test`
 4. **Format on save**: Use the provided `rustfmt.toml` configuration
 5. **Module structure**: Keep modules focused; main.rs is for CLI handling only
-6. **Problem templates**: When modifying templates, update both template.rs and examples/
+6. **Problem templates**: When modifying templates, update template.rs and check generated output in src/problems/

@@ -56,14 +56,12 @@ After seeing the problem, enter `Y` to download.
 ### Step 3: Write Solution (2 minutes)
 
 ```bash
-# Enter problem directory
-cd 000X_problem_name
+# Problems are downloaded to src/problems/
+# View the problem (description is in doc comments)
+head -50 src/problems/p000X_problem_name.rs
 
-# View problem description
-cat README.md
-
-# Edit src/lib.rs
-vim src/lib.rs  # Or use your favorite editor
+# Edit the problem file
+vim src/problems/p000X_problem_name.rs  # Or use your favorite editor
 ```
 
 ### Step 4: Local Testing (1 minute)
@@ -72,8 +70,8 @@ vim src/lib.rs  # Or use your favorite editor
 # Run tests
 leetcode-cli test --id X
 
-# Or use cargo directly
-cargo test
+# Or use cargo directly with module name
+cargo test p000X_problem_name
 ```
 
 ### Step 5: Submit Solution (1 minute)
@@ -106,7 +104,7 @@ View results:
 
 - Read [Full Documentation](README.md) for more features
 - View [Usage Examples](USAGE_EXAMPLES.md) for advanced usage
-- Reference [Example Problem](examples/0001_two_sum/) for project structure
+- Reference [Example Problem](src/problems/p0001_two_sum.rs) for solution structure
 
 ## FAQ
 
