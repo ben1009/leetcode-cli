@@ -29,6 +29,7 @@ impl<'a> CodeTemplate<'a> {
         self.write_file(path, Self::generate_rust_template)
     }
 
+    #[allow(dead_code)]
     pub fn write_description(&self, path: &Path) -> Result<()> {
         self.write_file(path, Self::generate_description)
     }
@@ -37,6 +38,7 @@ impl<'a> CodeTemplate<'a> {
         self.write_file(path, Self::generate_test_cases_json)
     }
 
+    #[allow(dead_code)]
     pub fn write_cargo_toml(&self, path: &Path) -> Result<()> {
         self.write_file(path, Self::generate_cargo_toml)
     }
@@ -44,26 +46,17 @@ impl<'a> CodeTemplate<'a> {
     fn generate_rust_template(&self) -> String {
         let mut template = String::new();
 
-        // Add header comment
-        template.push_str(&format!("// Problem: {}\n", self.problem.title));
-        template.push_str(&format!("// Difficulty: {}\n", self.problem.difficulty));
-        template.push_str(&format!(
-            "// URL: https://leetcode.com/problems/{}/\n",
-            self.problem.title_slug
-        ));
-        template.push('\n');
+        // Add crate-level attribute to suppress dead code warnings
+        template.push_str("#![allow(dead_code)]\n\n");
 
-        // Add standard Rust boilerplate
-        template.push_str("// Time Complexity: O()\n");
-        template.push_str("// Space Complexity: O()\n");
-        template.push('\n');
+        // Generate all content as doc comments on Solution struct for VSCode intellisense
+        template.push_str(&self.generate_solution_doc_comments());
 
         // Add the code snippet from LeetCode
         if let Some(ref snippet) = self.problem.get_rust_snippet() {
             template.push_str(snippet);
         } else {
             // Default template if no snippet available
-            template.push_str("struct Solution;\n\n");
             template.push_str("impl Solution {\n");
             template.push_str("    pub fn solve() {\n");
             template.push_str("        // TODO: Implement your solution here\n");
@@ -71,19 +64,10 @@ impl<'a> CodeTemplate<'a> {
             template.push_str("}\n");
         }
 
-        // Add main function for local testing
-        template.push('\n');
-        template.push_str("fn main() {\n");
-        template.push_str("    // Local testing\n");
-        template.push_str("    let sol = Solution;\n");
-        template.push_str("    // Add your test cases here\n");
-        template.push_str("}\n");
-
         // Add test module
         template.push('\n');
         template.push_str("#[cfg(test)]\n");
         template.push_str("mod tests {\n");
-        template.push_str("    use super::*;\n\n");
 
         // Add test cases from examples
         let test_cases = self.problem.parse_test_cases();
@@ -108,6 +92,7 @@ impl<'a> CodeTemplate<'a> {
         template
     }
 
+    #[allow(dead_code)]
     fn generate_description(&self) -> String {
         let mut desc = String::new();
 
@@ -163,8 +148,8 @@ impl<'a> CodeTemplate<'a> {
         desc.push_str("## Solution Approach\n\n");
         desc.push_str("<!-- Write your approach here -->\n\n");
         desc.push_str("### Complexity Analysis\n\n");
-        desc.push_str("- **Time Complexity:** O()\n");
-        desc.push_str("- **Space Complexity:** O()\n");
+        desc.push_str("- **Time Complexity:** O(n)\n");
+        desc.push_str("- **Space Complexity:** O(n)\n");
 
         desc
     }
@@ -203,6 +188,7 @@ impl<'a> CodeTemplate<'a> {
         serde_json::to_string_pretty(&test_file).unwrap_or_else(|_| "{}".to_string())
     }
 
+    #[allow(dead_code)]
     fn generate_cargo_toml(&self) -> String {
         let package_name = format!(
             "p{}_{}",
@@ -222,6 +208,45 @@ edition = "2021"
         )
     }
 
+    /// Generate doc comments for Solution struct with full problem description
+    /// This makes VSCode show all problem info when hovering over Solution
+    fn generate_solution_doc_comments(&self) -> String {
+        let mut doc = String::new();
+
+        // Add problem header
+        doc.push_str(&format!("/// Problem: {}\n", self.problem.title));
+        doc.push_str(&format!("/// Difficulty: {}\n", self.problem.difficulty));
+        doc.push_str(&format!(
+            "/// URL: https://leetcode.com/problems/{}/\n",
+            self.problem.title_slug
+        ));
+        doc.push_str("///\n");
+
+        // Add description
+        let clean_content = self.problem.clean_content();
+        // Replace code block markers with text markers to avoid doctest issues
+        let clean_content = clean_content.replace("```", "'''");
+        for line in clean_content.lines() {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                doc.push_str(&format!("/// {}\n", trimmed));
+            }
+        }
+
+        // Add examples
+        if let Some(ref examples) = self.problem.example_testcases {
+            doc.push_str("///\n/// ## Examples\n///\n");
+            for (i, line) in examples.lines().enumerate() {
+                doc.push_str(&format!("/// ### Example {}\n///\n", i + 1));
+                doc.push_str(&format!("///   {}\n///\n", line));
+            }
+        }
+
+        doc.push_str("pub struct Solution;\n\n");
+
+        doc
+    }
+
     #[allow(dead_code)]
     pub fn get_default_rust_template(&self) -> String {
         r#"// Default Rust template for LeetCode
@@ -234,10 +259,6 @@ impl Solution {
     // pub fn method_name(params) -> ReturnType {
     //     // Your implementation
     // }
-}
-
-fn main() {
-    // Local testing code
 }
 
 #[cfg(test)]

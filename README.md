@@ -58,12 +58,51 @@ leetcode-cli login
 leetcode-cli login --session "your_session_cookie" --csrf "your_csrf_token"
 ```
 
-**How to get cookies:**
-1. Login to LeetCode website
-2. Open browser developer tools (F12)
-3. Switch to Application/Storage tab
-4. Find Cookies > https://leetcode.com
-5. Copy values of `LEETCODE_SESSION` and `csrftoken`
+**How to get cookies from your browser:**
+
+#### Method A: Using Browser Developer Tools (Recommended)
+
+1. **Login to LeetCode** in your browser at https://leetcode.com
+
+2. **Open Developer Tools**:
+   - Chrome/Edge: Press `F12` or `Ctrl+Shift+I` (Windows/Linux), `Cmd+Option+I` (Mac)
+   - Firefox: Press `F12` or `Ctrl+Shift+I` (Windows/Linux), `Cmd+Option+I` (Mac)
+
+3. **Navigate to Application/Storage tab**:
+   - Chrome/Edge: Click "Application" tab → "Cookies" → "https://leetcode.com"
+   - Firefox: Click "Storage" tab → "Cookies" → "https://leetcode.com"
+
+4. **Copy the cookie values**:
+   - Find `LEETCODE_SESSION` - copy its value (long JWT string)
+   - Find `csrftoken` - copy its value (shorter alphanumeric string)
+
+5. **Paste into the CLI** when prompted or use the `--session` and `--csrf` flags
+
+#### Method B: Using Browser Extensions
+
+Install a cookie manager extension for easier access:
+- **Chrome**: "EditThisCookie" or "Cookie-Editor"
+- **Firefox**: "Cookie Quick Manager"
+
+Then:
+1. Click the extension icon while on leetcode.com
+2. Find and copy `LEETCODE_SESSION` and `csrftoken`
+
+#### Method C: Using JavaScript Console
+
+1. Open Developer Tools (F12)
+2. Go to "Console" tab
+3. Run this JavaScript:
+   ```javascript
+   console.log('LEETCODE_SESSION:', document.cookie.match(/LEETCODE_SESSION=([^;]+)/)?.[1]);
+   console.log('csrftoken:', document.cookie.match(/csrftoken=([^;]+)/)?.[1]);
+   ```
+
+**Important Security Notes:**
+- These credentials are stored in `~/.config/leetcode-cli/config.toml` (Linux/Mac) or `%APPDATA%/leetcode-cli/config.toml` (Windows)
+- Session expires after some time (days/weeks) - re-login when submission fails
+- **Never share or commit these credentials** - treat them like passwords
+- The `LEETCODE_SESSION` cookie grants access to your LeetCode account
 
 ### 2. Random Problem Selection
 

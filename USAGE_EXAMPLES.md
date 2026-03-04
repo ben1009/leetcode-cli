@@ -76,13 +76,16 @@ leetcode-cli download --id 42 --output ./problems/array
 
 ### Directory Structure After Download
 
+Problems are stored in `src/problems/` as individual Rust modules:
+
 ```
-0001_two_sum/
-├── src/
-│   └── lib.rs         # Rust code template
-├── Cargo.toml         # Project configuration
-├── README.md          # Problem description
-└── test_cases.json    # Test cases
+src/problems/
+├── mod.rs                    # Module declarations (auto-generated)
+├── p0001_two_sum.rs          # Problem solution with doc comments
+├── p0002_add_two_numbers.rs  # Another problem
+└── test_cases/               # Test cases in JSON
+    ├── p0001_two_sum.json
+    └── p0002_add_two_numbers.json
 ```
 
 ## Local Development
@@ -90,13 +93,13 @@ leetcode-cli download --id 42 --output ./problems/array
 ### Write Solution
 
 ```bash
-# Enter problem directory
-cd 0001_two_sum
-
-# Edit src/lib.rs
-vim src/lib.rs
+# Problems are stored in src/problems/
+# Edit the problem file directly
+vim src/problems/p0001_two_sum.rs
 # Or use your favorite editor
-code src/lib.rs
+code src/problems/p0001_two_sum.rs
+
+# The problem description is in the doc comments at the top of the file
 ```
 
 ### Run Tests
@@ -105,32 +108,24 @@ code src/lib.rs
 # Method 1: Use CLI test command
 leetcode-cli test --id 1
 
-# Method 2: Use cargo directly
-cargo test
+# Method 2: Use cargo directly with module path
+cargo test p0001_two_sum
 
 # Run specific test
-cargo test test_case_1
+cargo test test_two_sum_example_1
 
 # Show test output
-cargo test -- --nocapture
+cargo test p0001_two_sum -- --nocapture
 ```
 
 ### Debug Code
 
 ```bash
-# Add main function for debugging
-cat >> src/lib.rs << 'EOF'
+# Add a temporary test for debugging
+cargo test p0001_two_sum -- --nocapture
 
-fn main() {
-    let nums = vec![2, 7, 11, 15];
-    let target = 9;
-    let result = Solution::two_sum(nums, target);
-    println!("Result: {:?}", result);
-}
-EOF
-
-# Run
-cargo run
+# Or use rust-script for quick prototyping
+# See: https://github.com/fornwall/rust-script
 ```
 
 ## Submit Solution
@@ -141,7 +136,7 @@ cargo run
 # Submit current problem solution
 leetcode-cli submit --id 1
 
-# CLI will find src/lib.rs in 0001_* directory
+# CLI will find the solution in src/problems/p0001_*.rs
 ```
 
 ### Specify File Submit
@@ -199,17 +194,18 @@ leetcode-cli show --id 1
 # 1. Randomly select a medium difficulty problem
 leetcode-cli pick -d medium
 
-# 2. Problem auto-downloaded, enter directory
-cd 000X_problem_name
+# 2. Problem auto-downloaded to src/problems/
+#    (e.g., src/problems/p000X_problem_name.rs)
 
-# 3. Read README.md to understand problem
-cat README.md
+# 3. Read problem description in the doc comments at top of the file
+head -50 src/problems/p000X_problem_name.rs
 
-# 4. Write solution (edit src/lib.rs)
-vim src/lib.rs
+# 4. Write solution (edit the problem file)
+vim src/problems/p000X_problem_name.rs
 
 # 5. Local testing
 leetcode-cli test -i X
+# Or: cargo test p000X_problem_name
 
 # 6. Submit solution
 leetcode-cli submit -i X
@@ -230,9 +226,10 @@ leetcode-cli show -i 42
 leetcode-cli download -i 42
 
 # 4. Solve and test
-cd 0042_problem_name
+vim src/problems/p0042_problem_name.rs
 # ... write code ...
 leetcode-cli test -i 42
+# Or: cargo test p0042_problem_name
 
 # 5. Submit
 leetcode-cli submit -i 42
@@ -249,16 +246,15 @@ echo "🎯 Getting today's challenge..."
 # Randomly select a problem
 leetcode-cli pick -d medium
 
-# Get recently downloaded problem directory
-LATEST_DIR=$(ls -td */ | head -1)
-cd "$LATEST_DIR"
+# Get recently downloaded problem (latest by modification time)
+LATEST_PROBLEM=$(ls -t src/problems/p*.rs | head -1)
 
-echo "📁 Today's problem directory: $(pwd)"
+echo "📁 Today's problem: $LATEST_PROBLEM"
 echo "📝 Problem description:"
-head -20 README.md
+head -30 "$LATEST_PROBLEM"
 
 echo ""
-echo "Start solving! Edit src/lib.rs file"
+echo "Start solving! Edit $LATEST_PROBLEM"
 ```
 
 ## Advanced Usage
@@ -271,8 +267,11 @@ echo "Start solving! Edit src/lib.rs file"
 
 for i in {1..50}; do
     echo "Downloading problem $i..."
-    leetcode-cli download -i $i -o ./problems
+    leetcode-cli download -i $i
 done
+
+# All problems will be in src/problems/
+ls -la src/problems/
 ```
 
 ### Custom Tests
@@ -298,14 +297,17 @@ leetcode-cli test -i 1 --test-file custom_tests.json
 ### Editor Integration
 
 ```bash
-# VS Code integration
-leetcode-cli pick -d medium && code .
+# VS Code integration - open problems directory
+leetcode-cli pick -d medium && code src/problems/
 
 # Vim integration
-leetcode-cli pick && vim src/lib.rs
+leetcode-cli pick && vim src/problems/p*.rs
 
 # Emacs integration
-leetcode-cli pick && emacs src/lib.rs
+leetcode-cli pick && emacs src/problems/p*.rs
+
+# Open specific problem
+vim src/problems/p0001_two_sum.rs
 ```
 
 ## Troubleshooting
@@ -362,8 +364,9 @@ cargo clippy
    # solve.sh
    ID=$1
    leetcode-cli download -i $ID
-   cd $(ls -td */ | head -1)
-   $EDITOR src/lib.rs
+   # Find the downloaded problem file
+   PROBLEM_FILE=$(ls -t src/problems/p*.rs | head -1)
+   $EDITOR "$PROBLEM_FILE"
    ```
 
 3. **Regularly update problem list**

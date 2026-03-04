@@ -12,7 +12,7 @@ pub mod test;
 
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use colored::Colorize;
 #[cfg(test)]
 use tempfile::TempDir;
@@ -21,85 +21,6 @@ use crate::{
     api::SubmissionResult,
     problem::{DifficultyLevel, Problem},
 };
-
-/// Find problem directories by ID.
-///
-/// Searches the current directory for subdirectories matching the problem ID.
-/// Supports both zero-padded (`0001_`) and non-padded (`1_`) prefixes.
-///
-/// # Arguments
-/// * `problem_id` - The problem ID to search for
-///
-/// # Returns
-/// A vector of matching directory paths
-fn find_problem_directories(problem_id: u32) -> Result<Vec<PathBuf>> {
-    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
-
-    // Look for directories starting with problem_id (both padded and non-padded)
-    let padded_prefix = format!("{:04}_", problem_id);
-    let plain_prefix = format!("{}_", problem_id);
-
-    let mut matches = Vec::new();
-    for entry in std::fs::read_dir(&current_dir).context("Failed to read current directory")? {
-        let entry = entry?;
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
-
-        if (name.starts_with(&padded_prefix) || name.starts_with(&plain_prefix))
-            && entry.file_type()?.is_dir()
-        {
-            matches.push(entry.path());
-        }
-    }
-
-    Ok(matches)
-}
-
-/// Find a problem directory by its ID.
-///
-/// Searches the current directory for a subdirectory matching the problem ID.
-/// Supports both zero-padded (`0001_`) and non-padded (`1_`) prefixes.
-/// Also checks the current directory itself if it contains a Cargo project.
-///
-/// # Arguments
-/// * `problem_id` - The problem ID to search for
-///
-/// # Returns
-/// The path to the problem directory if found
-///
-/// # Errors
-/// Returns an error if no matching directory is found
-pub fn find_problem_directory(problem_id: u32) -> Result<PathBuf> {
-    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
-
-    // Try current directory first (check for new structure: Cargo.toml + src/lib.rs)
-    let cargo_toml = current_dir.join("Cargo.toml");
-    let lib_rs = current_dir.join("src/lib.rs");
-    if cargo_toml.exists() && lib_rs.exists() {
-        return Ok(current_dir);
-    }
-
-    // Try legacy structure: solution.rs in current directory
-    let solution_file = current_dir.join("solution.rs");
-    if solution_file.exists() {
-        return Ok(current_dir);
-    }
-
-    // Look for directory starting with problem_id
-    let matches = find_problem_directories(problem_id)?;
-
-    match matches.len() {
-        0 => anyhow::bail!(
-            "problem directory not found for ID {problem_id}: \
-             ensure you are in the problem directory or specify the path with --file"
-        ),
-        1 => Ok(matches[0].clone()),
-        _ => anyhow::bail!(
-            "multiple directories found for ID {problem_id}: \
-             please specify the exact path with --file"
-        ),
-    }
-}
 
 /// Prompt the user for input with a message
 pub fn prompt_input(message: &str) -> Result<String> {
@@ -201,37 +122,28 @@ pub fn print_submission_result(result: &SubmissionResult) {
 }
 
 /// Find the solution file for a problem
+///
+/// Looks for the problem file in `src/problems/p{id}_{slug}.rs`
 pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
     if let Some(f) = file {
         return Ok(f);
     }
 
-    let problem_dir = match find_problem_directory(id) {
-        Ok(dir) => dir,
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("multiple directories found") {
-                anyhow::bail!("{msg} with --file");
+    // Look in src/problems/ directory for p{id}_*.rs files
+    let problems_dir = PathBuf::from("src/problems");
+    if problems_dir.exists() {
+        let prefix = format!("p{:04}_", id);
+        for entry in std::fs::read_dir(&problems_dir)? {
+            let entry = entry?;
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(&prefix) && name.ends_with(".rs") {
+                return Ok(entry.path());
             }
-            return Err(e);
         }
-    };
-
-    // Try new structure first: src/lib.rs
-    let lib_rs = problem_dir.join("src/lib.rs");
-    if lib_rs.exists() {
-        return Ok(lib_rs);
-    }
-
-    // Try legacy structure: solution.rs
-    let solution_rs = problem_dir.join("solution.rs");
-    if solution_rs.exists() {
-        return Ok(solution_rs);
     }
 
     anyhow::bail!(
-        "solution file not found in '{}': expected either src/lib.rs or solution.rs",
-        problem_dir.display()
+        "solution file not found for problem {id}: expected src/problems/p{id:04}_{{slug}}.rs"
     )
 }
 
@@ -288,83 +200,64 @@ mod tests {
 
     #[test]
     fn test_find_solution_file_not_found() {
-        // Create a temp directory that won't have the problem directory
+        // Create a temp directory without the problems directory
         let temp_dir = TempDir::new().unwrap();
         let _guard = TestDirGuard::new(temp_dir);
 
         let result = find_solution_file(999, None);
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("problem directory not found"));
+        assert!(err_msg.contains("solution file not found"));
     }
 
     #[test]
-    fn test_find_solution_file_cargo_structure() {
+    fn test_find_solution_file_in_problems_dir() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create problem directory with Cargo structure
-        let problem_dir = temp_dir.path().join("0001_two_sum");
-        let src_dir = problem_dir.join("src");
-        std::fs::create_dir_all(&src_dir).unwrap();
-        let lib_rs = src_dir.join("lib.rs");
-        std::fs::write(&lib_rs, "pub struct Solution;").unwrap();
+        // Create problems directory structure
+        let problems_dir = temp_dir.path().join("src/problems");
+        std::fs::create_dir_all(&problems_dir).unwrap();
+        let problem_file = problems_dir.join("p0001_two_sum.rs");
+        std::fs::write(&problem_file, "pub struct Solution;").unwrap();
 
         let _guard = TestDirGuard::new(temp_dir);
 
         let result = find_solution_file(1, None);
         assert!(result.is_ok());
-        // Compare file names since paths may be canonicalized differently
         let found_path = result.unwrap();
-        assert!(found_path.to_string_lossy().contains("0001_two_sum"));
-        assert!(found_path.to_string_lossy().contains("lib.rs"));
+        assert!(found_path.to_string_lossy().contains("p0001_two_sum.rs"));
     }
 
     #[test]
-    fn test_find_solution_file_legacy_structure() {
+    #[serial_test::serial]
+    fn test_find_solution_file_multiple_ids() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create problem directory with legacy structure
-        let problem_dir = temp_dir.path().join("0002_add_two_numbers");
-        std::fs::create_dir(&problem_dir).unwrap();
-        let solution_rs = problem_dir.join("solution.rs");
-        std::fs::write(&solution_rs, "pub struct Solution;").unwrap();
+        // Create problems directory with multiple problems
+        let problems_dir = temp_dir.path().join("src/problems");
+        std::fs::create_dir_all(&problems_dir).unwrap();
+        std::fs::write(
+            problems_dir.join("p0001_two_sum.rs"),
+            "pub struct Solution;",
+        )
+        .unwrap();
+        std::fs::write(
+            problems_dir.join("p0002_add_two_numbers.rs"),
+            "pub struct Solution;",
+        )
+        .unwrap();
 
         let _guard = TestDirGuard::new(temp_dir);
 
-        let result = find_solution_file(2, None);
-        assert!(result.is_ok());
-        // Compare file names since paths may be canonicalized differently
-        let found_path = result.unwrap();
-        assert!(
-            found_path
-                .to_string_lossy()
-                .contains("0002_add_two_numbers")
-        );
-        assert!(found_path.to_string_lossy().contains("solution.rs"));
-    }
+        // Should find problem 1
+        let result1 = find_solution_file(1, None);
+        assert!(result1.is_ok());
+        assert!(result1.unwrap().to_string_lossy().contains("p0001"));
 
-    #[test]
-    fn test_find_solution_file_multiple_matches() {
-        let temp_dir = TempDir::new().unwrap();
-
-        // Create multiple directories matching the same ID
-        let problem_dir1 = temp_dir.path().join("0001_two_sum");
-        let src_dir1 = problem_dir1.join("src");
-        std::fs::create_dir_all(&src_dir1).unwrap();
-        std::fs::write(src_dir1.join("lib.rs"), "pub struct Solution;").unwrap();
-
-        let problem_dir2 = temp_dir.path().join("0001_two_sum_v2");
-        let src_dir2 = problem_dir2.join("src");
-        std::fs::create_dir_all(&src_dir2).unwrap();
-        std::fs::write(src_dir2.join("lib.rs"), "pub struct Solution;").unwrap();
-
-        let _guard = TestDirGuard::new(temp_dir);
-
-        let result = find_solution_file(1, None);
-        assert!(result.is_err());
-        let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("multiple directories found"));
-        assert!(err_msg.contains("--file"));
+        // Should find problem 2
+        let result2 = find_solution_file(2, None);
+        assert!(result2.is_ok());
+        assert!(result2.unwrap().to_string_lossy().contains("p0002"));
     }
 
     #[test]

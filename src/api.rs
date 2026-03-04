@@ -91,18 +91,23 @@ impl LeetCodeClient {
         );
 
         // Add authentication cookies if available
+        // Both LEETCODE_SESSION and csrftoken must be sent together
+        let mut cookies = Vec::new();
         if let Some(ref session) = config.session_cookie {
-            let cookie_value = format!("LEETCODE_SESSION={}", session);
-            headers.insert(
-                header::COOKIE,
-                header::HeaderValue::from_str(&cookie_value)?,
-            );
+            cookies.push(format!("LEETCODE_SESSION={}", session));
         }
-
         if let Some(ref csrf) = config.csrf_token {
+            cookies.push(format!("csrftoken={}", csrf));
+            // Also add X-CSRFToken header for POST requests
             headers.insert(
                 header::HeaderName::from_static("x-csrftoken"),
                 header::HeaderValue::from_str(csrf)?,
+            );
+        }
+        if !cookies.is_empty() {
+            headers.insert(
+                header::COOKIE,
+                header::HeaderValue::from_str(&cookies.join("; "))?,
             );
         }
 
