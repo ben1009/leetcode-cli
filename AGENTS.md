@@ -39,16 +39,15 @@ leetcode-cli/
 │   ├── api.rs               # LeetCode API client (~370 lines)
 │   ├── problem.rs           # Problem data structures (~240 lines)
 │   ├── template.rs          # Code template generation (~290 lines)
-│   ├── test_runner.rs       # Local test runner (~350 lines)
+
 │   ├── config.rs            # Configuration management (~110 lines)
 │   ├── problems/            # Problem solutions (downloaded)
 │   │   ├── mod.rs           # Module declarations
 │   │   ├── p0001_two_sum.rs # Problem solution files
-│   │   └── test_cases/      # Test cases in JSON
+
 │   └── commands/            # Subcommand modules
 │       ├── mod.rs           # Shared command utilities (~150 lines)
-│       ├── pick.rs          # Pick random problem (~40 lines)
-│       ├── download.rs      # Download problem (~70 lines)
+│       ├── pick.rs          # Pick random problem and download (~70 lines)
 │       ├── test.rs          # Run tests (~20 lines)
 │       ├── submit.rs        # Submit solution (~30 lines)
 │       ├── login.rs         # Login to LeetCode (~35 lines)
@@ -150,7 +149,7 @@ wrap_comments = true
 ## Module Descriptions
 
 ### `main.rs`
-CLI entry point using Clap derive macros. Defines 7 subcommands and dispatches to command modules.
+CLI entry point using Clap derive macros. Defines 6 subcommands and dispatches to command modules.
 
 ### `commands/mod.rs`
 Shared utilities for all commands:
@@ -161,10 +160,8 @@ Shared utilities for all commands:
 - `find_solution_file()` - Locate solution file by problem ID
 
 ### `commands/pick.rs`
-Random problem selection with optional difficulty/tag filters.
-
-### `commands/download.rs`
-Download problem to local directory with templates.
+Random problem selection with optional difficulty/tag filters. When user confirms,
+downloads the problem to local workspace with code templates.
 
 ### `commands/test.rs`
 Run local tests for a problem.
@@ -199,12 +196,7 @@ Data structures for LeetCode problems:
 ### `template.rs`
 Generates problem templates:
 - `CodeTemplate::write_rust_template()` - Generates `src/problems/p{id}_{slug}.rs`
-- `CodeTemplate::write_test_cases()` - Generates `src/problems/test_cases/p{id}_{slug}.json`
 
-### `test_runner.rs`
-Local test execution:
-- `TestRunner::new()` - Creates test runner for a problem
-- `TestRunner::run()` - Runs `cargo test p{id}::` for specific problem module
 
 ### `config.rs`
 Configuration management using Confy:
@@ -230,7 +222,7 @@ Each module has inline tests in `#[cfg(test)]` modules:
 - `problem.rs` - Tests metadata parsing
 - `config.rs` - Tests config defaults and authentication check
 - `template.rs` - Tests template generation
-- `test_runner.rs` - Tests test runner creation (uses tempfile)
+
 
 ### Problem Directory Structure
 
@@ -239,9 +231,7 @@ When a problem is downloaded, it creates:
 ```
 src/problems/
 ├── mod.rs                    # Updated with new module declaration
-├── p0001_two_sum.rs          # Rust solution with doc comments and tests
-└── test_cases/
-    └── p0001_two_sum.json    # Test cases in JSON format
+└── p0001_two_sum.rs          # Rust solution with doc comments and tests
 ```
 
 Problems are stored as individual Rust modules in `src/problems/`, with the problem description embedded as doc comments in the solution file.

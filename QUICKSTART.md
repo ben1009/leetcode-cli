@@ -94,7 +94,6 @@ View results:
 | `leetcode-cli login` | Login |
 | `leetcode-cli pick` | Random selection |
 | `leetcode-cli pick -d medium` | Select medium difficulty |
-| `leetcode-cli download -i 1` | Download problem 1 |
 | `leetcode-cli test -i 1` | Test problem 1 |
 | `leetcode-cli submit -i 1` | Submit problem 1 |
 | `leetcode-cli list` | View problem list |
@@ -109,7 +108,7 @@ View results:
 ## FAQ
 
 **Q: Is login required?**  
-A: Download and local testing don't require login, but submitting solutions requires login.
+A: `pick` and local testing don't require login, but submitting solutions requires login.
 
 **Q: What languages are supported?**  
 A: Currently mainly supports Rust, but problem descriptions and test frameworks can be adapted for any language.

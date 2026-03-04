@@ -34,10 +34,6 @@ impl<'a> CodeTemplate<'a> {
         self.write_file(path, Self::generate_description)
     }
 
-    pub fn write_test_cases(&self, path: &Path) -> Result<()> {
-        self.write_file(path, Self::generate_test_cases_json)
-    }
-
     #[allow(dead_code)]
     pub fn write_cargo_toml(&self, path: &Path) -> Result<()> {
         self.write_file(path, Self::generate_cargo_toml)
@@ -152,40 +148,6 @@ impl<'a> CodeTemplate<'a> {
         desc.push_str("- **Space Complexity:** O(n)\n");
 
         desc
-    }
-
-    fn generate_test_cases_json(&self) -> String {
-        let test_cases = self.problem.parse_test_cases();
-
-        #[derive(serde::Serialize)]
-        struct TestCaseFile {
-            problem_id: String,
-            problem_title: String,
-            test_cases: Vec<TestCaseJson>,
-        }
-
-        #[derive(serde::Serialize)]
-        struct TestCaseJson {
-            input: String,
-            expected: String,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            explanation: Option<String>,
-        }
-
-        let test_file = TestCaseFile {
-            problem_id: self.problem.question_id.clone(),
-            problem_title: self.problem.title.clone(),
-            test_cases: test_cases
-                .into_iter()
-                .map(|tc| TestCaseJson {
-                    input: tc.input,
-                    expected: tc.expected,
-                    explanation: tc.explanation,
-                })
-                .collect(),
-        };
-
-        serde_json::to_string_pretty(&test_file).unwrap_or_else(|_| "{}".to_string())
     }
 
     #[allow(dead_code)]
@@ -386,23 +348,6 @@ mod tests {
     }
 
     #[test]
-    fn test_write_test_cases() {
-        let temp_dir = TempDir::new().unwrap();
-        let problem = create_test_problem();
-        let template = CodeTemplate::new(&problem);
-        let output_path = temp_dir.path().join("test_cases.json");
-
-        template.write_test_cases(&output_path).unwrap();
-
-        let content = fs::read_to_string(&output_path).unwrap();
-        assert!(content.contains("\"problem_id\": \"1\""));
-        assert!(content.contains("\"problem_title\": \"Two Sum\""));
-        // Test cases are now properly parsed
-        assert!(content.contains("\"input\": \"2,7,11,15\""));
-        assert!(content.contains("\"expected\": \"9\""));
-    }
-
-    #[test]
     fn test_write_cargo_toml() {
         let temp_dir = TempDir::new().unwrap();
         let problem = create_test_problem();
@@ -425,16 +370,6 @@ mod tests {
         assert!(desc.contains("# Add Two Numbers"));
         assert!(desc.contains("**Difficulty:** Medium"));
         assert!(!desc.contains("## Hints"));
-    }
-
-    #[test]
-    fn test_generate_test_cases_json_empty() {
-        let problem = create_test_problem_no_snippets();
-        let template = CodeTemplate::new(&problem);
-        let json = template.generate_test_cases_json();
-
-        assert!(json.contains("\"problem_id\": \"2\""));
-        assert!(json.contains("\"test_cases\": []"));
     }
 
     #[test]

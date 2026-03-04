@@ -29,7 +29,7 @@ leetcode-cli/
 │   ├── api.rs           # LeetCode API client
 │   ├── problem.rs       # Problem data structures
 │   ├── template.rs      # Code template generation
-│   ├── test_runner.rs   # Local test runner
+
 │   └── config.rs        # Configuration management
 ├── examples/            # Example problems
 ├── Cargo.toml          # Project configuration
