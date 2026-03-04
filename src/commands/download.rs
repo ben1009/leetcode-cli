@@ -197,4 +197,146 @@ mod tests {
         let count = content.matches("pub mod p0001_two_sum;").count();
         assert_eq!(count, 1);
     }
+
+    /// Create a test problem list for mocking
+    fn create_test_problem_list() -> serde_json::Value {
+        serde_json::json!({
+            "user_name": "test_user",
+            "num_solved": 1,
+            "num_total": 1,
+            "ac_easy": 1,
+            "ac_medium": 0,
+            "ac_hard": 0,
+            "stat_status_pairs": [
+                {
+                    "stat": {
+                        "question_id": 1,
+                        "question__article__live": null,
+                        "question__article__slug": null,
+                        "question__title": "Two Sum",
+                        "question__title_slug": "two-sum",
+                        "question__hide": false,
+                        "total_acs": 1000000,
+                        "total_submitted": 2000000,
+                        "frontend_question_id": 1,
+                        "is_new_question": false
+                    },
+                    "difficulty": {"level": 1},
+                    "paid_only": false,
+                    "is_favor": false,
+                    "frequency": 0,
+                    "progress": 0,
+                    "status": "ac"
+                }
+            ]
+        })
+    }
+
+    async fn setup_mock_server() -> (wiremock::MockServer, crate::config::Config) {
+        let mock_server = wiremock::MockServer::start().await;
+        let config = crate::config::Config::default();
+        (mock_server, config)
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_download_execute_success() {
+        let (mock_server, config) = setup_mock_server().await;
+        let temp_dir = TempDir::new().unwrap();
+
+        // Setup mock for problem list
+        wiremock::Mock::given(wiremock::matchers::method("GET"))
+            .and(wiremock::matchers::path("/api/problems/all/"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200).set_body_json(create_test_problem_list()),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Setup mock for problem detail
+        let graphql_response = serde_json::json!({
+            "data": {
+                "question": {
+                    "questionId": "1",
+                    "title": "Two Sum",
+                    "titleSlug": "two-sum",
+                    "content": "<p>Given an array of integers...</p>",
+                    "difficulty": "Easy",
+                    "exampleTestcases": "[2,7,11,15]\n9",
+                    "sampleTestCase": "[2,7,11,15]\n9",
+                    "metaData": null,
+                    "codeSnippets": [
+                        {
+                            "lang": "Rust",
+                            "langSlug": "rust",
+                            "code": "impl Solution {\n    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {\n        \n    }\n}"
+                        }
+                    ],
+                    "hints": ["Use a hash map"],
+                    "topicTags": [{"name": "Array", "slug": "array"}]
+                }
+            }
+        });
+
+        wiremock::Mock::given(wiremock::matchers::method("POST"))
+            .and(wiremock::matchers::path("/graphql"))
+            .respond_with(wiremock::ResponseTemplate::new(200).set_body_json(graphql_response))
+            .mount(&mock_server)
+            .await;
+
+        let client = crate::api::LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let _guard = TestDirGuard::new(temp_dir);
+
+        // Create src/problems directory
+        fs::create_dir_all("src/problems").unwrap();
+
+        // Execute download
+        let result = execute(&client, 1, PathBuf::from(".")).await;
+        assert!(result.is_ok());
+
+        // Verify files were created
+        assert!(fs::metadata("src/problems/p0001_two_sum.rs").is_ok());
+        assert!(fs::metadata("src/problems/test_cases/p0001_two_sum.json").is_ok());
+
+        // Verify mod.rs was updated
+        let mod_content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        assert!(mod_content.contains("pub mod p0001_two_sum;"));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_download_execute_problem_not_found() {
+        let (mock_server, config) = setup_mock_server().await;
+        let temp_dir = TempDir::new().unwrap();
+
+        // Setup mock for problem list (only has problem 1)
+        wiremock::Mock::given(wiremock::matchers::method("GET"))
+            .and(wiremock::matchers::path("/api/problems/all/"))
+            .respond_with(
+                wiremock::ResponseTemplate::new(200).set_body_json(create_test_problem_list()),
+            )
+            .mount(&mock_server)
+            .await;
+
+        let client = crate::api::LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let _guard = TestDirGuard::new(temp_dir);
+
+        // Try to download non-existent problem
+        let result = execute(&client, 999, PathBuf::from(".")).await;
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("problem not found")
+        );
+    }
 }
