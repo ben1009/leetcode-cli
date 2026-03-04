@@ -46,6 +46,9 @@ impl<'a> CodeTemplate<'a> {
     fn generate_rust_template(&self) -> String {
         let mut template = String::new();
 
+        // Add crate-level attribute to suppress dead code warnings
+        template.push_str("#![allow(dead_code)]\n\n");
+
         // Generate all content as doc comments on Solution struct for VSCode intellisense
         template.push_str(&self.generate_solution_doc_comments());
 
