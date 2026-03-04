@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 /// Problem: Two Sum
 /// Difficulty: Easy
 /// URL: https://leetcode.com/problems/two-sum/
@@ -50,22 +51,18 @@
 /// ### Example 6
 ///
 ///   6
-#[allow(dead_code)]
 pub struct Solution;
 
 impl Solution {
-    #[allow(dead_code)]
     pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {
-        use std::collections::HashMap;
-
-        let mut map = HashMap::new();
+        let mut dic = std::collections::HashMap::new();
         for (i, &num) in nums.iter().enumerate() {
-            let complement = target - num;
-            if let Some(&index) = map.get(&complement) {
+            if let Some(&index) = dic.get(&(target - num)) {
                 return vec![index, i as i32];
             }
-            map.insert(num, i as i32);
+            dic.insert(num, i as i32);
         }
+
         vec![]
     }
 }
