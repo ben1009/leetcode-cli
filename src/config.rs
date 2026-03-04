@@ -163,15 +163,17 @@ mod tests {
     fn test_get_editor_from_env() {
         // Temporarily set EDITOR env var
         let original = env::var("EDITOR").ok();
-        env::set_var("EDITOR", "vim");
+        unsafe {
+            env::set_var("EDITOR", "vim");
+        }
 
         let config = Config::default();
         assert_eq!(config.get_editor(), "vim");
 
         // Restore original value
         match original {
-            Some(val) => env::set_var("EDITOR", val),
-            None => env::remove_var("EDITOR"),
+            Some(val) => unsafe { env::set_var("EDITOR", val) },
+            None => unsafe { env::remove_var("EDITOR") },
         }
     }
 
