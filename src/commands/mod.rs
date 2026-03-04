@@ -210,6 +210,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_find_solution_file_in_problems_dir() {
         let temp_dir = TempDir::new().unwrap();
 

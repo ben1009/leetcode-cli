@@ -184,7 +184,7 @@ impl LeetCodeClient {
 
         // Filter by difficulty
         if let Some(diff) = difficulty
-            && let Some(level) = DifficultyLevel::from_str(diff)
+            && let Ok(level) = diff.parse::<DifficultyLevel>()
         {
             filtered.retain(|p| p.difficulty.level == level.level());
         }

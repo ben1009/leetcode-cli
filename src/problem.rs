@@ -85,16 +85,6 @@ pub enum DifficultyLevel {
 }
 
 impl DifficultyLevel {
-    /// Parse difficulty from string (case-insensitive)
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "easy" => Some(Self::Easy),
-            "medium" => Some(Self::Medium),
-            "hard" => Some(Self::Hard),
-            _ => None,
-        }
-    }
-
     /// Get the numeric level (1-3)
     pub fn level(self) -> i32 {
         self as i32
@@ -107,6 +97,20 @@ impl DifficultyLevel {
             Self::Easy => "Easy",
             Self::Medium => "Medium",
             Self::Hard => "Hard",
+        }
+    }
+}
+
+impl std::str::FromStr for DifficultyLevel {
+    type Err = ();
+
+    /// Parse difficulty from string (case-insensitive)
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "easy" => Ok(Self::Easy),
+            "medium" => Ok(Self::Medium),
+            "hard" => Ok(Self::Hard),
+            _ => Err(()),
         }
     }
 }
