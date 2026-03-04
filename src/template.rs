@@ -135,12 +135,12 @@ impl<'a> CodeTemplate<'a> {
         }
 
         // Add hints if available
-        if let Some(ref hints) = self.problem.hints {
-            if !hints.is_empty() {
-                desc.push_str("## Hints\n\n");
-                for (i, hint) in hints.iter().enumerate() {
-                    desc.push_str(&format!("{}. {}\n\n", i + 1, hint));
-                }
+        if let Some(ref hints) = self.problem.hints
+            && !hints.is_empty()
+        {
+            desc.push_str("## Hints\n\n");
+            for (i, hint) in hints.iter().enumerate() {
+                desc.push_str(&format!("{}. {}\n\n", i + 1, hint));
             }
         }
 

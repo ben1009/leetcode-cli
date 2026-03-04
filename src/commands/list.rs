@@ -37,14 +37,12 @@ pub async fn execute(
             "○ New".normal()
         };
 
-        if let Some(ref diff_filter) = difficulty {
-            if let Some(level) = DifficultyLevel::from_str(diff_filter) {
-                if problem.difficulty.level != level.level() {
-                    continue;
-                }
-            }
+        if let Some(ref diff_filter) = difficulty
+            && let Some(level) = DifficultyLevel::from_str(diff_filter)
+            && problem.difficulty.level != level.level()
+        {
+            continue;
         }
-
         if let Some(ref status_filter) = status {
             let should_show = match status_filter.to_lowercase().as_str() {
                 "solved" => problem.status == Some("ac".to_string()),

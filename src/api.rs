@@ -183,10 +183,10 @@ impl LeetCodeClient {
         let mut filtered: Vec<&Problem> = self.problems.iter().collect();
 
         // Filter by difficulty
-        if let Some(diff) = difficulty {
-            if let Some(level) = DifficultyLevel::from_str(diff) {
-                filtered.retain(|p| p.difficulty.level == level.level());
-            }
+        if let Some(diff) = difficulty
+            && let Some(level) = DifficultyLevel::from_str(diff)
+        {
+            filtered.retain(|p| p.difficulty.level == level.level());
         }
 
         // Filter out paid-only problems
@@ -205,13 +205,13 @@ impl LeetCodeClient {
                     .await
                 {
                     Ok(detail) => {
-                        if let Some(ref tags) = detail.topic_tags {
-                            if tags.iter().any(|t| {
+                        if let Some(ref tags) = detail.topic_tags
+                            && tags.iter().any(|t| {
                                 t.slug == tag_slug
                                     || t.name.to_lowercase() == tag_filter.to_lowercase()
-                            }) {
-                                tagged_problems.push(*problem);
-                            }
+                            })
+                        {
+                            tagged_problems.push(*problem);
                         }
                     }
                     Err(_) => continue, // Skip problems we can't fetch details for
@@ -370,11 +370,11 @@ impl LeetCodeClient {
             let result: serde_json::Value = response.json().await?;
 
             // Check if submission is complete
-            if let Some(state) = result.get("state").and_then(|s| s.as_str()) {
-                if state == "SUCCESS" {
-                    let submission_result: SubmissionResult = serde_json::from_value(result)?;
-                    return Ok(submission_result);
-                }
+            if let Some(state) = result.get("state").and_then(|s| s.as_str())
+                && state == "SUCCESS"
+            {
+                let submission_result: SubmissionResult = serde_json::from_value(result)?;
+                return Ok(submission_result);
             }
 
             #[cfg(not(test))]
