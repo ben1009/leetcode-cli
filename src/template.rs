@@ -68,7 +68,6 @@ impl<'a> CodeTemplate<'a> {
         template.push('\n');
         template.push_str("#[cfg(test)]\n");
         template.push_str("mod tests {\n");
-        template.push_str("    use super::*;\n\n");
 
         // Add test cases from examples
         let test_cases = self.problem.parse_test_cases();
