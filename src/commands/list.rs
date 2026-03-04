@@ -38,7 +38,7 @@ pub async fn execute(
         };
 
         if let Some(ref diff_filter) = difficulty
-            && let Some(level) = DifficultyLevel::from_str(diff_filter)
+            && let Ok(level) = diff_filter.parse::<DifficultyLevel>()
             && problem.difficulty.level != level.level()
         {
             continue;

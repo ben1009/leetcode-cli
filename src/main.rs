@@ -2,16 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-
-mod api;
-mod commands;
-mod config;
-mod problem;
-mod problems;
-mod template;
-
-use api::LeetCodeClient;
-use config::Config;
+use leetcode_cli::{api::LeetCodeClient, commands, config::Config};
 
 #[derive(Parser)]
 #[command(name = "leetcode-cli")]
