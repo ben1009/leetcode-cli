@@ -56,12 +56,12 @@ After seeing the problem, enter `Y` to download.
 ### Step 3: Write Solution (2 minutes)
 
 ```bash
-# Problems are downloaded to src/problems/
+# Problems are downloaded to src/solutions/
 # View the problem (description is in doc comments)
-head -50 src/problems/p000X_problem_name.rs
+head -50 src/solutions/p000X_problem_name.rs
 
 # Edit the problem file
-vim src/problems/p000X_problem_name.rs  # Or use your favorite editor
+vim src/solutions/p000X_problem_name.rs  # Or use your favorite editor
 ```
 
 ### Step 4: Local Testing (1 minute)
@@ -103,7 +103,7 @@ View results:
 
 - Read [Full Documentation](README.md) for more features
 - View [Usage Examples](USAGE_EXAMPLES.md) for advanced usage
-- Reference [Example Problem](src/problems/p0001_two_sum.rs) for solution structure
+- Reference [Example Problem](src/solutions/p0001_two_sum.rs) for solution structure
 
 ## FAQ
 

@@ -195,7 +195,7 @@ Data structures for LeetCode problems:
 
 ### `template.rs`
 Generates problem templates:
-- `CodeTemplate::write_rust_template()` - Generates `src/problems/p{id}_{slug}.rs`
+- `CodeTemplate::write_rust_template()` - Generates `src/solutions/p{id}_{slug}.rs`
 
 
 ### `config.rs`
@@ -229,12 +229,12 @@ Each module has inline tests in `#[cfg(test)]` modules:
 When a problem is downloaded, it creates:
 
 ```
-src/problems/
+src/solutions/
 ├── mod.rs                    # Updated with new module declaration
 └── p0001_two_sum.rs          # Rust solution with doc comments and tests
 ```
 
-Problems are stored as individual Rust modules in `src/problems/`, with the problem description embedded as doc comments in the solution file.
+Solutions are stored as individual Rust modules in `src/solutions/`, with the problem description embedded as doc comments in the solution file.
 
 ## CI/CD Configuration
 
@@ -303,4 +303,4 @@ All PRs must pass:
 3. **Test with nextest**: Prefer `cargo nextest run` over `cargo test`
 4. **Format on save**: Use the provided `rustfmt.toml` configuration
 5. **Module structure**: Keep modules focused; main.rs is for CLI handling only
-6. **Problem templates**: When modifying templates, update template.rs and check generated output in src/problems/
+6. **Solution templates**: When modifying templates, update template.rs and check generated output in src/solutions/

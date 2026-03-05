@@ -122,14 +122,14 @@ pub fn print_submission_result(result: &SubmissionResult) {
 
 /// Find the solution file for a problem
 ///
-/// Looks for the problem file in `src/problems/p{id}_{slug}.rs`
+/// Looks for the problem file in `src/solutions/p{id}_{slug}.rs`
 pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
     if let Some(f) = file {
         return Ok(f);
     }
 
-    // Look in src/problems/ directory for p{id}_*.rs files
-    let problems_dir = PathBuf::from("src/problems");
+    // Look in src/solutions/ directory for p{id}_*.rs files
+    let problems_dir = PathBuf::from("src/solutions");
     if problems_dir.exists() {
         let prefix = format!("p{:04}_", id);
         for entry in std::fs::read_dir(&problems_dir)? {
@@ -142,7 +142,7 @@ pub fn find_solution_file(id: u32, file: Option<PathBuf>) -> Result<PathBuf> {
     }
 
     anyhow::bail!(
-        "solution file not found for problem {id}: expected src/problems/p{id:04}_{{slug}}.rs"
+        "solution file not found for problem {id}: expected src/solutions/p{id:04}_{{slug}}.rs"
     )
 }
 
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_find_solution_file_not_found() {
-        // Create a temp directory without the problems directory
+        // Create a temp directory without the solutions directory
         let temp_dir = TempDir::new().unwrap();
         let _guard = TestDirGuard::new(temp_dir);
 
@@ -211,13 +211,13 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn test_find_solution_file_in_problems_dir() {
+    fn test_find_solution_file_in_solutions_dir() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create problems directory structure
-        let problems_dir = temp_dir.path().join("src/problems");
-        std::fs::create_dir_all(&problems_dir).unwrap();
-        let problem_file = problems_dir.join("p0001_two_sum.rs");
+        // Create solutions directory structure
+        let solutions_dir = temp_dir.path().join("src/solutions");
+        std::fs::create_dir_all(&solutions_dir).unwrap();
+        let problem_file = solutions_dir.join("p0001_two_sum.rs");
         std::fs::write(&problem_file, "pub struct Solution;").unwrap();
 
         let _guard = TestDirGuard::new(temp_dir);
@@ -233,16 +233,16 @@ mod tests {
     fn test_find_solution_file_multiple_ids() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create problems directory with multiple problems
-        let problems_dir = temp_dir.path().join("src/problems");
-        std::fs::create_dir_all(&problems_dir).unwrap();
+        // Create solutions directory with multiple solutions
+        let solutions_dir = temp_dir.path().join("src/solutions");
+        std::fs::create_dir_all(&solutions_dir).unwrap();
         std::fs::write(
-            problems_dir.join("p0001_two_sum.rs"),
+            solutions_dir.join("p0001_two_sum.rs"),
             "pub struct Solution;",
         )
         .unwrap();
         std::fs::write(
-            problems_dir.join("p0002_add_two_numbers.rs"),
+            solutions_dir.join("p0002_add_two_numbers.rs"),
             "pub struct Solution;",
         )
         .unwrap();

@@ -199,12 +199,12 @@ mod tests {
         // Test submit with file path
         let submit_with_file = Commands::Submit {
             id: 1,
-            file: Some(PathBuf::from("src/problems/p0001_two_sum.rs")),
+            file: Some(PathBuf::from("src/solutions/p0001_two_sum.rs")),
         };
         match submit_with_file {
             Commands::Submit { id, file } => {
                 assert_eq!(id, 1);
-                assert_eq!(file, Some(PathBuf::from("src/problems/p0001_two_sum.rs")));
+                assert_eq!(file, Some(PathBuf::from("src/solutions/p0001_two_sum.rs")));
             }
             _ => panic!("Expected Submit command"),
         }

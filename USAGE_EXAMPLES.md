@@ -57,10 +57,10 @@ leetcode-cli pick -i 42
 
 When you pick a problem, it is automatically downloaded. The directory structure is:
 
-Problems are stored in `src/problems/` as individual Rust modules:
+Solutions are stored in `src/solutions/` as individual Rust modules:
 
 ```
-src/problems/
+src/solutions/
 ├── mod.rs                    # Module declarations (auto-generated)
 ├── p0001_two_sum.rs          # Problem solution with doc comments
 ├── p0002_add_two_numbers.rs  # Another problem
@@ -72,11 +72,11 @@ src/problems/
 ### Write Solution
 
 ```bash
-# Problems are stored in src/problems/
+# Problems are stored in src/solutions/
 # Edit the problem file directly
-vim src/problems/p0001_two_sum.rs
+vim src/solutions/p0001_two_sum.rs
 # Or use your favorite editor
-code src/problems/p0001_two_sum.rs
+code src/solutions/p0001_two_sum.rs
 
 # The problem description is in the doc comments at the top of the file
 ```
@@ -115,7 +115,7 @@ cargo test p0001_two_sum -- --nocapture
 # Submit current problem solution
 leetcode-cli submit --id 1
 
-# CLI will find the solution in src/problems/p0001_*.rs
+# CLI will find the solution in src/solutions/p0001_*.rs
 ```
 
 ### Specify File Submit
@@ -173,14 +173,14 @@ leetcode-cli show --id 1
 # 1. Randomly select a medium difficulty problem
 leetcode-cli pick -d medium
 
-# 2. Problem auto-downloaded to src/problems/
-#    (e.g., src/problems/p000X_problem_name.rs)
+# 2. Problem auto-downloaded to src/solutions/
+#    (e.g., src/solutions/p000X_problem_name.rs)
 
 # 3. Read problem description in the doc comments at top of the file
-head -50 src/problems/p000X_problem_name.rs
+head -50 src/solutions/p000X_problem_name.rs
 
 # 4. Write solution (edit the problem file)
-vim src/problems/p000X_problem_name.rs
+vim src/solutions/p000X_problem_name.rs
 
 # 5. Local testing
 leetcode-cli test -i X
@@ -205,7 +205,7 @@ leetcode-cli show -i 42
 leetcode-cli pick -i 42
 
 # 4. Solve and test
-vim src/problems/p0042_problem_name.rs
+vim src/solutions/p0042_problem_name.rs
 # ... write code ...
 leetcode-cli test -i 42
 # Or: cargo test p0042_problem_name
@@ -226,7 +226,7 @@ echo "🎯 Getting today's challenge..."
 leetcode-cli pick -d medium
 
 # Get recently downloaded problem (latest by modification time)
-LATEST_PROBLEM=$(ls -t src/problems/p*.rs | head -1)
+LATEST_PROBLEM=$(ls -t src/solutions/p*.rs | head -1)
 
 echo "📁 Today's problem: $LATEST_PROBLEM"
 echo "📝 Problem description:"
@@ -249,24 +249,24 @@ for i in {1..50}; do
     leetcode-cli pick -i $i
 done
 
-# All problems will be in src/problems/
-ls -la src/problems/
+# All problems will be in src/solutions/
+ls -la src/solutions/
 ```
 
 ### Editor Integration
 
 ```bash
 # VS Code integration - open problems directory
-leetcode-cli pick -d medium && code src/problems/
+leetcode-cli pick -d medium && code src/solutions/
 
 # Vim integration
-leetcode-cli pick && vim src/problems/p*.rs
+leetcode-cli pick && vim src/solutions/p*.rs
 
 # Emacs integration
-leetcode-cli pick && emacs src/problems/p*.rs
+leetcode-cli pick && emacs src/solutions/p*.rs
 
 # Open specific problem
-vim src/problems/p0001_two_sum.rs
+vim src/solutions/p0001_two_sum.rs
 ```
 
 ## Troubleshooting
@@ -323,7 +323,7 @@ cargo clippy
    ID=$1
    leetcode-cli pick -i $ID
    # Find the downloaded problem file
-   PROBLEM_FILE=$(ls -t src/problems/p*.rs | head -1)
+   PROBLEM_FILE=$(ls -t src/solutions/p*.rs | head -1)
    $EDITOR "$PROBLEM_FILE"
    ```
 
