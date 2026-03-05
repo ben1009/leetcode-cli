@@ -200,7 +200,7 @@ leetcode-cli login
 leetcode-cli pick --difficulty medium
 
 # 3. Enter problem directory and write solution
-vim src/problems/p0002_add_two_numbers.rs
+vim src/solutions/p0002_add_two_numbers.rs
 
 # 4. Local testing
 leetcode-cli test --id 2
