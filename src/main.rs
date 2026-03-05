@@ -101,7 +101,15 @@ async fn main() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use clap::CommandFactory;
+
     use super::*;
+
+    #[test]
+    fn test_cli_command_factory() {
+        // Verify CLI parses correctly using clap's built-in verification
+        Cli::command().debug_assert();
+    }
 
     #[test]
     fn test_commands_display() {
@@ -134,5 +142,148 @@ mod tests {
 
         let show = Commands::Show { id: 1 };
         drop(show);
+    }
+
+    #[test]
+    fn test_pick_command_variants() {
+        // Test pick with all options
+        let pick_full = Commands::Pick {
+            id: Some(42),
+            difficulty: Some("hard".to_string()),
+            tag: Some("dynamic-programming".to_string()),
+        };
+        match pick_full {
+            Commands::Pick {
+                id,
+                difficulty,
+                tag,
+            } => {
+                assert_eq!(id, Some(42));
+                assert_eq!(difficulty, Some("hard".to_string()));
+                assert_eq!(tag, Some("dynamic-programming".to_string()));
+            }
+            _ => panic!("Expected Pick command"),
+        }
+
+        // Test pick with no options (random)
+        let pick_random = Commands::Pick {
+            id: None,
+            difficulty: None,
+            tag: None,
+        };
+        match pick_random {
+            Commands::Pick {
+                id,
+                difficulty,
+                tag,
+            } => {
+                assert!(id.is_none());
+                assert!(difficulty.is_none());
+                assert!(tag.is_none());
+            }
+            _ => panic!("Expected Pick command"),
+        }
+    }
+
+    #[test]
+    fn test_test_command() {
+        let test = Commands::Test { id: 123 };
+        match test {
+            Commands::Test { id } => assert_eq!(id, 123),
+            _ => panic!("Expected Test command"),
+        }
+    }
+
+    #[test]
+    fn test_submit_command_variants() {
+        // Test submit with file path
+        let submit_with_file = Commands::Submit {
+            id: 1,
+            file: Some(PathBuf::from("src/problems/p0001_two_sum.rs")),
+        };
+        match submit_with_file {
+            Commands::Submit { id, file } => {
+                assert_eq!(id, 1);
+                assert_eq!(file, Some(PathBuf::from("src/problems/p0001_two_sum.rs")));
+            }
+            _ => panic!("Expected Submit command"),
+        }
+
+        // Test submit without file path
+        let submit_without_file = Commands::Submit { id: 2, file: None };
+        match submit_without_file {
+            Commands::Submit { id, file } => {
+                assert_eq!(id, 2);
+                assert!(file.is_none());
+            }
+            _ => panic!("Expected Submit command"),
+        }
+    }
+
+    #[test]
+    fn test_login_command_variants() {
+        // Test login with provided credentials
+        let login_with_creds = Commands::Login {
+            session: Some("session123".to_string()),
+            csrf: Some("csrf456".to_string()),
+        };
+        match login_with_creds {
+            Commands::Login { session, csrf } => {
+                assert_eq!(session, Some("session123".to_string()));
+                assert_eq!(csrf, Some("csrf456".to_string()));
+            }
+            _ => panic!("Expected Login command"),
+        }
+
+        // Test login without credentials (will prompt)
+        let login_prompt = Commands::Login {
+            session: None,
+            csrf: None,
+        };
+        match login_prompt {
+            Commands::Login { session, csrf } => {
+                assert!(session.is_none());
+                assert!(csrf.is_none());
+            }
+            _ => panic!("Expected Login command"),
+        }
+    }
+
+    #[test]
+    fn test_list_command_variants() {
+        // Test list with all filters
+        let list_filtered = Commands::List {
+            difficulty: Some("medium".to_string()),
+            status: Some("solved".to_string()),
+        };
+        match list_filtered {
+            Commands::List { difficulty, status } => {
+                assert_eq!(difficulty, Some("medium".to_string()));
+                assert_eq!(status, Some("solved".to_string()));
+            }
+            _ => panic!("Expected List command"),
+        }
+
+        // Test list without filters
+        let list_all = Commands::List {
+            difficulty: None,
+            status: None,
+        };
+        match list_all {
+            Commands::List { difficulty, status } => {
+                assert!(difficulty.is_none());
+                assert!(status.is_none());
+            }
+            _ => panic!("Expected List command"),
+        }
+    }
+
+    #[test]
+    fn test_show_command() {
+        let show = Commands::Show { id: 999 };
+        match show {
+            Commands::Show { id } => assert_eq!(id, 999),
+            _ => panic!("Expected Show command"),
+        }
     }
 }
