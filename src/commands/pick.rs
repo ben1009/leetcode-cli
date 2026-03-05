@@ -51,12 +51,12 @@ fn sanitize_file_name(name: &str) -> String {
         .collect()
 }
 
-/// Add a module declaration to src/problems/mod.rs if it doesn't exist
+/// Add a module declaration to src/solutions/mod.rs if it doesn't exist
 fn add_module_declaration(module_name: &str) -> Result<()> {
-    let mod_path = PathBuf::from("src/problems/mod.rs");
+    let mod_path = PathBuf::from("src/solutions/mod.rs");
 
-    // Create problems directory if it doesn't exist
-    std::fs::create_dir_all("src/problems")?;
+    // Create solutions directory if it doesn't exist
+    std::fs::create_dir_all("src/solutions")?;
 
     let mod_decl = format!("pub mod {module_name};");
 
@@ -93,13 +93,13 @@ async fn download_problem(client: &LeetCodeClient, problem: &Problem) -> Result<
     let module_name = format!("p{:04}_{}", id, slug.replace("-", "_"));
     let file_name = format!("{module_name}.rs");
 
-    // Ensure problems directory exists
-    let problems_dir = PathBuf::from("src/problems");
-    std::fs::create_dir_all(&problems_dir)?;
+    // Ensure solutions directory exists
+    let solutions_dir = PathBuf::from("src/solutions");
+    std::fs::create_dir_all(&solutions_dir)?;
 
     // Generate code template
     let template = CodeTemplate::new(&detail);
-    let code_file = problems_dir.join(&file_name);
+    let code_file = solutions_dir.join(&file_name);
     template.write_rust_template(&code_file)?;
 
     // Add module declaration
@@ -204,14 +204,14 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         // Create src directory
-        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::create_dir_all(temp_dir.path().join("src/solutions")).unwrap();
 
         let _guard = TestDirGuard::new(temp_dir);
 
         let result = add_module_declaration("p0001_two_sum");
         assert!(result.is_ok());
 
-        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        let content = fs::read_to_string("src/solutions/mod.rs").unwrap();
         assert!(content.contains("pub mod p0001_two_sum;"));
         assert!(content.contains("//! LeetCode problem solutions"));
     }
@@ -222,9 +222,9 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         // Create existing mod.rs
-        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::create_dir_all(temp_dir.path().join("src/solutions")).unwrap();
         fs::write(
-            temp_dir.path().join("src/problems/mod.rs"),
+            temp_dir.path().join("src/solutions/mod.rs"),
             "pub mod p0001_two_sum;\n",
         )
         .unwrap();
@@ -234,7 +234,7 @@ mod tests {
         let result = add_module_declaration("p0002_add_two_numbers");
         assert!(result.is_ok());
 
-        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        let content = fs::read_to_string("src/solutions/mod.rs").unwrap();
         assert!(content.contains("pub mod p0001_two_sum;"));
         assert!(content.contains("pub mod p0002_add_two_numbers;"));
     }
@@ -245,9 +245,9 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         // Create existing mod.rs with the module already declared
-        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::create_dir_all(temp_dir.path().join("src/solutions")).unwrap();
         fs::write(
-            temp_dir.path().join("src/problems/mod.rs"),
+            temp_dir.path().join("src/solutions/mod.rs"),
             "pub mod p0001_two_sum;\n",
         )
         .unwrap();
@@ -257,7 +257,7 @@ mod tests {
         let result = add_module_declaration("p0001_two_sum");
         assert!(result.is_ok());
 
-        let content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        let content = fs::read_to_string("src/solutions/mod.rs").unwrap();
         // Should only appear once
         let count = content.matches("pub mod p0001_two_sum;").count();
         assert_eq!(count, 1);
@@ -316,8 +316,8 @@ mod tests {
 
         let _guard = TestDirGuard::new(temp_dir);
 
-        // Create src/problems directory
-        fs::create_dir_all("src/problems").unwrap();
+        // Create src/solutions directory
+        fs::create_dir_all("src/solutions").unwrap();
 
         // Create a problem to download
         let problem = Problem {
@@ -346,10 +346,10 @@ mod tests {
         assert!(result.is_ok());
 
         // Verify files were created
-        assert!(fs::metadata("src/problems/p0001_two_sum.rs").is_ok());
+        assert!(fs::metadata("src/solutions/p0001_two_sum.rs").is_ok());
 
         // Verify mod.rs was updated
-        let mod_content = fs::read_to_string("src/problems/mod.rs").unwrap();
+        let mod_content = fs::read_to_string("src/solutions/mod.rs").unwrap();
         assert!(mod_content.contains("pub mod p0001_two_sum;"));
     }
 }

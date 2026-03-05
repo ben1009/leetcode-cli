@@ -92,7 +92,7 @@ impl Solution {
 
 #[cfg(test)]
 mod tests {
-    use crate::problems::p0002_add_two_numbers::{ListNode, Solution};
+    use crate::solutions::p0002_add_two_numbers::{ListNode, Solution};
 
     #[test]
     fn test_case_1() {

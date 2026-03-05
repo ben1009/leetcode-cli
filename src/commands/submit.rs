@@ -37,10 +37,10 @@ mod tests {
     fn test_find_solution_file_for_submit() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create problems directory with a solution file
-        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        // Create solutions directory with a solution file
+        fs::create_dir_all(temp_dir.path().join("src/solutions")).unwrap();
         fs::write(
-            temp_dir.path().join("src/problems/p0001_two_sum.rs"),
+            temp_dir.path().join("src/solutions/p0001_two_sum.rs"),
             "pub struct Solution;",
         )
         .unwrap();
@@ -58,7 +58,7 @@ mod tests {
     #[serial_test::serial]
     fn test_find_solution_file_not_found() {
         let temp_dir = TempDir::new().unwrap();
-        fs::create_dir_all(temp_dir.path().join("src/problems")).unwrap();
+        fs::create_dir_all(temp_dir.path().join("src/solutions")).unwrap();
 
         let _guard = TestDirGuard::new(temp_dir);
 
