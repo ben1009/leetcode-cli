@@ -1031,6 +1031,46 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_check_http_error() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return HTTP 500 error to trigger retry path
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_err());
+    }
+
     #[test]
     fn test_submission_result_deserialization() {
         let json = r#"{
