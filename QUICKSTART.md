@@ -108,7 +108,6 @@ View results:
 - Read [Full Documentation](README.md) for more features
 - View [Usage Examples](USAGE_EXAMPLES.md) for advanced usage
 - Reference [Example Problem](src/solutions/p0001_two_sum.rs) for solution structure
-- See [Usage Examples](USAGE_EXAMPLES.md) for more detailed workflows
 
 ## FAQ
 

@@ -192,9 +192,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_0001() {
+    fn test_case_0001_1() {
         // Input: nums = [2,7,11,15], target = 9
         // Expected: [0,1]
+        // TODO: Add test implementation
+    }
+
+    #[test]
+    fn test_case_0001_2() {
+        // Input: nums = [3,2,4], target = 6
+        // Expected: [1,2]
         // TODO: Add test implementation
     }
 

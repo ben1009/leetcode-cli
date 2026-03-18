@@ -29,7 +29,6 @@ This document provides essential information for AI coding agents working on the
 | **Error Handling** | Anyhow, Thiserror |
 | **Testing** | cargo-nextest, cargo-llvm-cov |
 | **Build Tasks** | cargo-make |
-| **Build Tasks** | cargo-make |
 
 ## Project Structure
 
