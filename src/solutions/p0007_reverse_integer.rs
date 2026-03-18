@@ -43,17 +43,17 @@ impl Solution {
             return x;
         }
 
-        let mut ret: i64 = 0;
+        let mut ret: i32 = 0;
         let mut x = x;
         while x != 0 {
-            ret = ret * 10 + x as i64 % 10;
-            if ret > i32::MAX as i64 || ret < i32::MIN as i64 {
+            let Some(r) = ret.checked_mul(10).and_then(|r| r.checked_add(x % 10)) else {
                 return 0;
-            }
+            };
+            ret = r;
             x /= 10;
         }
 
-        ret as i32
+        ret
     }
 }
 #[cfg(test)]
