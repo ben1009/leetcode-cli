@@ -365,6 +365,20 @@ pub fn html_to_markdown(html: &str) -> String {
                                 traverse_node(elem, output, in_code_block);
                             }
                         }
+                        "sup" => {
+                            // Superscript: add ^ before the content
+                            output.push('^');
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
+                        }
+                        "sub" => {
+                            // Subscript: add _ before the content
+                            output.push('_');
+                            if let Some(ref elem) = child_elem {
+                                traverse_node(elem, output, in_code_block);
+                            }
+                        }
                         _ => {
                             // For unknown tags, just traverse children
                             if let Some(ref elem) = child_elem {
@@ -817,5 +831,68 @@ mod tests {
         let md = html_to_markdown(html);
         assert!(md.contains("```"));
         assert!(md.contains("fn main() {}"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_superscript() {
+        let html = "<p>Range [-2<sup>31</sup>, 2<sup>31</sup> - 1]</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("[-2^31, 2^31 - 1]"));
+        assert!(!md.contains("231"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_subscript() {
+        let html = "<p>a<sub>i</sub> + b<sub>j</sub></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("a_i + b_j"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_superscript_with_negative() {
+        // Test case like 10^-9
+        let html = "<p>10<sup>-9</sup> meters</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("10^-9 meters"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_superscript_with_text() {
+        // Test case with letters like O(n^2)
+        let html = "<p>O(n<sup>2</sup>) time complexity</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("O(n^2) time complexity"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_subscript_in_array() {
+        // Test array indexing like nums[i]
+        let html = "<p>nums[<sub>i</sub>] where i is index</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("nums[_i] where i is index"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_superscript_mixed_with_formatting() {
+        // Test superscript mixed with bold/italic
+        let html = "<p><strong>2<sup>31</sup></strong> - 1</p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("**2^31** - 1"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_multiple_superscripts() {
+        // Test multiple superscripts in same sentence
+        let html = "<p>2<sup>10</sup> + 2<sup>20</sup> = 2<sup>30</sup></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("2^10 + 2^20 = 2^30"));
+    }
+
+    #[test]
+    fn test_html_to_markdown_math_expression() {
+        // Test common math expression like x^2 + y^2
+        let html = "<p>x<sup>2</sup> + y<sup>2</sup> = z<sup>2</sup></p>";
+        let md = html_to_markdown(html);
+        assert!(md.contains("x^2 + y^2 = z^2"));
     }
 }
