@@ -95,7 +95,7 @@ mod tests {
     use crate::solutions::p0002_add_two_numbers::{ListNode, Solution};
 
     #[test]
-    fn test_case_1() {
+    fn test_case_0002() {
         // Input: [2,4,3]
         // Expected: [5,6,4]
         assert_eq!(

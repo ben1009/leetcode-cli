@@ -6,13 +6,14 @@ This document helps you quickly get started with LeetCode CLI.
 
 ### Prerequisites
 
-- Rust 1.70 or higher
+- Rust (nightly toolchain as specified in `rust-toolchain.toml`)
 - Cargo
 
 ### Installation Steps
 
 ```bash
 # 1. Clone or download project
+git clone <repository-url>
 cd leetcode-cli
 
 # 2. Run install script
@@ -58,27 +59,30 @@ After seeing the problem, enter `Y` to download.
 ```bash
 # Problems are downloaded to src/solutions/
 # View the problem (description is in doc comments)
-head -50 src/solutions/p000X_problem_name.rs
+head -50 src/solutions/p0001_two_sum.rs
 
 # Edit the problem file
-vim src/solutions/p000X_problem_name.rs  # Or use your favorite editor
+vim src/solutions/p0001_two_sum.rs  # Or use your favorite editor
 ```
 
 ### Step 4: Local Testing (1 minute)
 
 ```bash
-# Run tests
-leetcode-cli test --id X
+# Run tests using the CLI
+leetcode-cli test --id 1
 
-# Or use cargo directly with module name
-cargo test p000X_problem_name
+# Or use cargo directly with the module name
+cargo test p0001_two_sum
+
+# Show test output (for debugging)
+cargo test p0001_two_sum -- --nocapture
 ```
 
 ### Step 5: Submit Solution (1 minute)
 
 ```bash
 # Submit solution
-leetcode-cli submit --id X
+leetcode-cli submit --id 1
 ```
 
 View results:
@@ -104,6 +108,7 @@ View results:
 - Read [Full Documentation](README.md) for more features
 - View [Usage Examples](USAGE_EXAMPLES.md) for advanced usage
 - Reference [Example Problem](src/solutions/p0001_two_sum.rs) for solution structure
+- See [Usage Examples](USAGE_EXAMPLES.md) for more detailed workflows
 
 ## FAQ
 

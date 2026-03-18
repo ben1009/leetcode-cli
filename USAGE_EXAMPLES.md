@@ -8,7 +8,11 @@ This document provides detailed usage examples for LeetCode CLI.
 
 ```bash
 # Compile and install
-cargo make install
+./install.sh
+
+# Or manually
+cargo build --release
+cp target/release/leetcode-cli ~/.local/bin/
 
 # Verify installation
 leetcode-cli --version
@@ -84,24 +88,33 @@ code src/solutions/p0001_two_sum.rs
 ### Run Tests
 
 ```bash
-# Method 1: Use CLI test command
+# Method 1: Use CLI test command (recommended)
 leetcode-cli test --id 1
 
-# Method 2: Use cargo directly with module path
+# Method 2: Use cargo directly with module name
 cargo test p0001_two_sum
 
-# Run specific test
+# Run specific test by name
 cargo test test_two_sum_example_1
 
-# Show test output
+# Show test output with print statements
 cargo test p0001_two_sum -- --nocapture
+
+# Run all tests in the solutions module
+cargo test solutions
 ```
 
 ### Debug Code
 
 ```bash
-# Add a temporary test for debugging
+# Run tests with output for debugging
 cargo test p0001_two_sum -- --nocapture
+
+# Run a single test for quick iteration
+cargo test test_two_sum_example_1 -- --nocapture
+
+# Check compilation without running tests
+cargo check
 
 # Or use rust-script for quick prototyping
 # See: https://github.com/fornwall/rust-script
@@ -236,6 +249,12 @@ echo ""
 echo "Start solving! Edit $LATEST_PROBLEM"
 ```
 
+Make the script executable and run it:
+```bash
+chmod +x daily_challenge.sh
+./daily_challenge.sh
+```
+
 ## Advanced Usage
 
 ### Batch Download
@@ -287,11 +306,14 @@ cat ~/.config/leetcode-cli/config.toml
 # Check Rust syntax
 cargo check
 
-# View detailed errors
+# View detailed test output
 cargo test -- --nocapture
 
-# Run specific test manually
-cargo test test_case_1 -- --exact
+# Run specific test
+cargo test test_two_sum_example_1 -- --exact --nocapture
+
+# Run tests for a specific problem
+cargo test p0001_two_sum
 ```
 
 ### Submit Failure

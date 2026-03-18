@@ -9,10 +9,17 @@ A command-line tool written in Rust for LeetCode practice. Randomly select probl
 
 | Metric | Status |
 |--------|--------|
-| **Line Coverage** | 77% (110 tests) |
-| **Tests Passing** | ✅ 110/110 |
+| **Line Coverage** | 77% (170 tests) |
+| **Tests Passing** | ✅ 170/170 |
 | **Clippy** | ✅ Clean |
 | **Format** | ✅ Clean |
+
+## Documentation
+
+- [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
+- [Usage Examples](USAGE_EXAMPLES.md) - Detailed usage examples and workflows
+- [Contributing Guide](CONTRIBUTING.md) - Development setup and contribution guidelines
+- [Project Summary](PROJECT_SUMMARY.md) - Project overview and architecture
 
 ## Features
 
@@ -41,7 +48,7 @@ cp target/release/leetcode-cli ~/.local/bin/
 
 ### Requirements
 
-- Rust 1.70+
+- Rust (nightly toolchain as specified in `rust-toolchain.toml`)
 - Cargo
 
 ## Usage
@@ -124,6 +131,9 @@ leetcode-cli pick --id 1
 ```bash
 # Run tests for a problem
 leetcode-cli test --id 1
+
+# Or use cargo directly
+cargo test p0001_two_sum
 ```
 
 ### 4. Submit Solution
@@ -159,7 +169,7 @@ leetcode-cli show --id 1
 
 ## Code Template
 
-When downloading a problem, a Rust code template is automatically generated:
+When downloading a problem, a Rust code template is automatically generated with the problem description embedded in doc comments and pre-populated test cases:
 
 ```rust
 #![allow(dead_code)]
@@ -182,11 +192,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_1() {
+    fn test_case_0001() {
         // Input: nums = [2,7,11,15], target = 9
         // Expected: [0,1]
         // TODO: Add test implementation
     }
+
+    // Additional test cases for edge cases...
 }
 ```
 

@@ -4,9 +4,10 @@ Thank you for your interest in contributing to LeetCode CLI!
 
 ## Development Environment Setup
 
-1. **Install Rust** (1.70+)
+1. **Install Rust** (nightly toolchain required)
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   rustup toolchain install nightly-2026-02-01
    ```
 
 2. **Clone Repository**
@@ -25,16 +26,29 @@ Thank you for your interest in contributing to LeetCode CLI!
 ```
 leetcode-cli/
 ├── src/
-│   ├── main.rs          # CLI entry and command handling
-│   ├── api.rs           # LeetCode API client
-│   ├── problem.rs       # Problem data structures
-│   ├── template.rs      # Code template generation
-
-│   └── config.rs        # Configuration management
-├── examples/            # Example problems
-├── Cargo.toml          # Project configuration
-├── Makefile            # Build scripts
-└── README.md           # Documentation
+│   ├── main.rs              # CLI entry and command handling
+│   ├── api.rs               # LeetCode API client
+│   ├── problem.rs           # Problem data structures
+│   ├── template.rs          # Code template generation
+│   ├── config.rs            # Configuration management
+│   ├── solutions/           # Problem solutions
+│   │   ├── mod.rs           # Module declarations
+│   │   └── p0001_two_sum.rs # Problem solution files
+│   └── commands/            # Subcommand modules
+│       ├── mod.rs           # Shared utilities
+│       ├── pick.rs          # Pick random problem
+│       ├── test.rs          # Run tests
+│       ├── submit.rs        # Submit solution
+│       ├── login.rs         # Login to LeetCode
+│       ├── list.rs          # List problems
+│       └── show.rs          # Show problem details
+├── Cargo.toml              # Project configuration
+├── Makefile.toml           # cargo-make tasks
+├── install.sh              # Installation script
+├── README.md               # User documentation
+├── QUICKSTART.md           # Quick start guide
+├── USAGE_EXAMPLES.md       # Detailed usage examples
+└── AGENTS.md               # Agent documentation
 ```
 
 ## Development Workflow
@@ -119,7 +133,7 @@ Clear description of expected behavior
 
 **Environment**
 - OS: [e.g. macOS, Linux]
-- Rust version: [e.g. 1.70.0]
+- Rust version: [e.g. nightly-2026-02-01]
 - Version: [e.g. 0.1.0]
 
 **Additional Info**
