@@ -149,4 +149,4 @@ New feature suggestions are welcome! Please describe:
 
 ## License
 
-By contributing code, you agree that your contribution will be released under the MIT License.
+By contributing code, you agree that your contribution will be released under the Apache License 2.0.

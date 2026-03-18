@@ -174,7 +174,7 @@ leetcode-cli submit --id 1
 
 ### License
 
-MIT License
+Apache License 2.0
 
 ### Contributing
 
