@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::{Result, anyhow};
+use backon::{ExponentialBuilder, Retryable};
 use rand::seq::IndexedRandom;
 use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
@@ -346,25 +347,27 @@ impl LeetCodeClient {
             self.base_url, submission_id
         );
 
+        // Configure retry strategy with exponential backoff
         #[cfg(test)]
         let max_attempts = 2;
         #[cfg(not(test))]
         let max_attempts = 30;
 
-        // Exponential backoff: start at 1s, max 8s
-        let mut delay_secs = 1;
+        let backoff = ExponentialBuilder::default()
+            .with_min_delay(std::time::Duration::from_secs(1))
+            .with_max_delay(std::time::Duration::from_secs(8))
+            .with_max_times(max_attempts);
 
-        for attempt in 0..max_attempts {
+        let attempt_counter = std::sync::atomic::AtomicUsize::new(0);
+
+        let result = (|| async {
+            let attempt = attempt_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             println!("  Checking result... ({}/{})", attempt + 1, max_attempts);
 
             let response = self.client.get(&check_url).send().await?;
 
             if !response.status().is_success() {
-                #[cfg(not(test))]
-                tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
-                // Exponential backoff with cap at 8 seconds
-                delay_secs = (delay_secs * 2).min(8);
-                continue;
+                return Err(anyhow!("HTTP error: {}", response.status()));
             }
 
             let result: serde_json::Value = response.json().await?;
@@ -373,20 +376,23 @@ impl LeetCodeClient {
             if let Some(state) = result.get("state").and_then(|s| s.as_str())
                 && state == "SUCCESS"
             {
-                let submission_result: SubmissionResult = serde_json::from_value(result)?;
+                let submission_result: SubmissionResult =
+                    serde_json::from_value(result).map_err(|e| anyhow!("parse error: {}", e))?;
                 return Ok(submission_result);
             }
 
-            #[cfg(not(test))]
-            tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
-            // Exponential backoff with cap at 8 seconds
-            delay_secs = (delay_secs * 2).min(8);
-        }
+            // Not ready yet, retry
+            Err(anyhow!("submission not ready yet"))
+        })
+        .retry(backoff)
+        .await;
 
-        Err(anyhow!(
-            "timeout waiting for submission result after {} attempts",
-            max_attempts
-        ))
+        result.map_err(|_| {
+            anyhow!(
+                "timeout waiting for submission result after {} attempts",
+                max_attempts
+            )
+        })
     }
 
     pub(crate) fn extract_solution_code(code: &str) -> String {
