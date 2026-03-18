@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use anyhow::{Result, anyhow};
+use backon::{ExponentialBuilder, Retryable};
 use rand::seq::IndexedRandom;
 use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
@@ -346,25 +347,30 @@ impl LeetCodeClient {
             self.base_url, submission_id
         );
 
+        // Configure retry strategy with exponential backoff
         #[cfg(test)]
         let max_attempts = 2;
         #[cfg(not(test))]
         let max_attempts = 30;
 
-        // Exponential backoff: start at 1s, max 8s
-        let mut delay_secs = 1;
+        let backoff = ExponentialBuilder::default()
+            .with_min_delay(std::time::Duration::from_secs(1))
+            .with_max_delay(std::time::Duration::from_secs(8))
+            .with_max_times(max_attempts);
 
-        for attempt in 0..max_attempts {
+        let attempt_counter = std::sync::atomic::AtomicUsize::new(0);
+        let last_error = std::sync::Mutex::new(None::<String>);
+
+        let result = (|| async {
+            let attempt = attempt_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             println!("  Checking result... ({}/{})", attempt + 1, max_attempts);
 
             let response = self.client.get(&check_url).send().await?;
 
             if !response.status().is_success() {
-                #[cfg(not(test))]
-                tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
-                // Exponential backoff with cap at 8 seconds
-                delay_secs = (delay_secs * 2).min(8);
-                continue;
+                let err = anyhow!("HTTP error: {}", response.status());
+                *last_error.lock().unwrap() = Some(err.to_string());
+                return Err(err);
             }
 
             let result: serde_json::Value = response.json().await?;
@@ -373,20 +379,34 @@ impl LeetCodeClient {
             if let Some(state) = result.get("state").and_then(|s| s.as_str())
                 && state == "SUCCESS"
             {
-                let submission_result: SubmissionResult = serde_json::from_value(result)?;
-                return Ok(submission_result);
+                match serde_json::from_value::<SubmissionResult>(result) {
+                    Ok(submission_result) => return Ok(submission_result),
+                    Err(e) => {
+                        let err = anyhow!("parse error: {}", e);
+                        *last_error.lock().unwrap() = Some(err.to_string());
+                        return Err(err);
+                    }
+                }
             }
 
-            #[cfg(not(test))]
-            tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
-            // Exponential backoff with cap at 8 seconds
-            delay_secs = (delay_secs * 2).min(8);
-        }
+            // Not ready yet, retry
+            Err(anyhow!("submission not ready yet"))
+        })
+        .retry(backoff)
+        .await;
 
-        Err(anyhow!(
-            "timeout waiting for submission result after {} attempts",
-            max_attempts
-        ))
+        result.map_err(|e| {
+            // Only show timeout message if the last error was "not ready yet"
+            // Otherwise, preserve the actual error (parse error, HTTP error, etc.)
+            if e.to_string().contains("submission not ready yet") {
+                anyhow!(
+                    "timeout waiting for submission result after {} attempts",
+                    max_attempts
+                )
+            } else {
+                e
+            }
+        })
     }
 
     pub(crate) fn extract_solution_code(code: &str) -> String {
@@ -1022,6 +1042,96 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("timeout waiting for submission result")
+        );
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_check_http_error() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return HTTP 500 error to trigger retry path
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_parse_error_preserved() {
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return SUCCESS state with malformed payload (missing required fields)
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "state": "SUCCESS",
+                "invalid_field": "This will cause a parse error"
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution {}").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_err());
+        // The error should be a parse error, not a timeout
+        let err_str = result.unwrap_err().to_string();
+        assert!(
+            err_str.contains("parse error") || err_str.contains("missing field"),
+            "Expected parse error, got: {}",
+            err_str
         );
     }
 

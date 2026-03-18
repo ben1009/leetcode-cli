@@ -182,7 +182,7 @@ Display detailed problem description.
 LeetCode API client (`LeetCodeClient`):
 - Fetches problem list from `https://leetcode.com/api/problems/all/`
 - GraphQL queries for problem details
-- Solution submission with polling for results
+- Solution submission with polling for results (uses `backon` for retry with exponential backoff)
 - Cookie-based authentication (LEETCODE_SESSION, csrftoken)
 
 ### `problem.rs`
@@ -292,6 +292,7 @@ All PRs must pass:
 | `reqwest` | HTTP client |
 | `serde` / `serde_json` | Serialization |
 | `anyhow` | Error handling |
+| `backon` | Retry with exponential backoff |
 | `confy` | Configuration management |
 | `rand` | Random problem selection |
 | `scraper` | HTML parsing |
