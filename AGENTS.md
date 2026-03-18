@@ -18,7 +18,7 @@ This document provides essential information for AI coding agents working on the
 
 | Component | Technology |
 |-----------|------------|
-| **Language** | Rust (Edition 2021) |
+| **Language** | Rust (Edition 2024) |
 | **Toolchain** | Nightly (`nightly-2026-02-01`) |
 | **Async Runtime** | Tokio |
 | **HTTP Client** | Reqwest |
@@ -158,13 +158,14 @@ Shared utilities for all commands:
 - `print_problem_summary()` - Display problem overview
 - `print_submission_result()` - Display submission results
 - `find_solution_file()` - Locate solution file by problem ID
+- `TestDirGuard` - RAII guard for test directory management
 
 ### `commands/pick.rs`
 Random problem selection with optional difficulty/tag filters. When user confirms,
 downloads the problem to local workspace with code templates.
 
 ### `commands/test.rs`
-Run local tests for a problem.
+Run local tests for a problem. Executes `cargo test p{id:04}::` to run tests for the specific problem module.
 
 ### `commands/submit.rs`
 Submit solution to LeetCode.

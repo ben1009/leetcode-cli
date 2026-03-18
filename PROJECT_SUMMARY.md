@@ -20,7 +20,7 @@ A fully functional LeetCode command line tool written in Rust. Supports random p
 
 ### Tech Stack
 
-- **Language**: Rust 1.70+
+- **Language**: Rust (nightly toolchain)
 - **Async Runtime**: Tokio
 - **HTTP Client**: Reqwest
 - **CLI Framework**: Clap v4
@@ -38,20 +38,19 @@ leetcode-cli/
 │   ├── api.rs               # LeetCode API client (~370 lines)
 │   ├── problem.rs           # Problem data structures (~240 lines)
 │   ├── template.rs          # Code template generation (~290 lines)
-
 │   ├── config.rs            # Configuration management (~110 lines)
-│   ├── problems/            # Problem solutions
+│   ├── lib.rs               # Library exports
+│   ├── solutions/           # Problem solutions
 │   │   ├── mod.rs           # Module declarations
-│   │   ├── p0001_two_sum.rs # Problem solution files
-
+│   │   └── p0001_two_sum.rs # Problem solution files
 │   └── commands/            # Subcommand modules
-│       ├── mod.rs           # Shared utilities
-│       ├── pick.rs          # Pick and download
-│       ├── test.rs          # Run tests
-│       ├── submit.rs        # Submit solution
-│       ├── login.rs         # Login to LeetCode
-│       ├── list.rs          # List problems
-│       └── show.rs          # Show problem details
+│       ├── mod.rs           # Shared utilities (~150 lines)
+│       ├── pick.rs          # Pick and download (~70 lines)
+│       ├── test.rs          # Run tests (~20 lines)
+│       ├── submit.rs        # Submit solution (~30 lines)
+│       ├── login.rs         # Login to LeetCode (~35 lines)
+│       ├── list.rs          # List problems (~80 lines)
+│       └── show.rs          # Show problem details (~60 lines)
 ├── Cargo.toml              # Project configuration
 ├── Makefile.toml           # cargo-make tasks
 ├── install.sh              # Installation script
@@ -62,7 +61,7 @@ leetcode-cli/
 └── AGENTS.md               # Agent documentation
 ```
 
-**Total Code**: ~2000 lines of Rust code
+**Total Code**: ~2000+ lines of Rust code
 
 ### Core Modules
 
@@ -175,7 +174,7 @@ leetcode-cli submit --id 1
 
 ### License
 
-MIT License
+Apache License 2.0
 
 ### Contributing
 

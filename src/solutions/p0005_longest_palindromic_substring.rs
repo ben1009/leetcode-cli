@@ -65,7 +65,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_1() {
+    fn test_case_0005() {
         assert_eq!(Solution::longest_palindrome("babad".to_string()), "bab");
         assert_eq!(Solution::longest_palindrome("cbbd".to_string()), "bb");
         assert_eq!(Solution::longest_palindrome("a".to_string()), "a");

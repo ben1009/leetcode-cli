@@ -67,9 +67,14 @@ impl<'a> CodeTemplate<'a> {
 
         // Add test cases from examples
         let test_cases = self.problem.parse_test_cases();
+        let question_id: u32 = self.problem.question_id.parse().unwrap_or(0);
         for (i, tc) in test_cases.iter().enumerate() {
             template.push_str("    #[test]\n");
-            template.push_str(&format!("    fn test_case_{}() {{\n", i + 1));
+            template.push_str(&format!(
+                "    fn test_case_{:04}_{}() {{\n",
+                question_id,
+                i + 1
+            ));
             template.push_str(&format!("        // Input: {}\n", tc.input));
             template.push_str(&format!("        // Expected: {}\n", tc.expected));
             template.push_str("        // TODO: Add test implementation\n");
@@ -302,8 +307,8 @@ mod tests {
         assert!(rust_code.contains("impl Solution"));
         assert!(rust_code.contains("#[cfg(test)]"));
         // Test cases are now properly parsed
-        assert!(rust_code.contains("test_case_1"));
-        assert!(rust_code.contains("test_case_2"));
+        assert!(rust_code.contains("test_case_0001_1"));
+        assert!(rust_code.contains("test_case_0001_2"));
     }
 
     #[test]

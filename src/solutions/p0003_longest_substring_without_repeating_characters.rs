@@ -66,7 +66,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_1() {
+    fn test_case_0003() {
         // Input: "abcabcbb"
         // Expected: "bbbbb"
         assert_eq!(
