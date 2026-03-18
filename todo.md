@@ -47,7 +47,7 @@
 ## Error Handling
 
 - [x] Improve `extract_solution_code()` - brace counting could fail on edge cases
-- [x] Use exponential backoff in `poll_submission_result()` instead of fixed intervals
+- [x] Use exponential backoff in `poll_submission_result()` using `backon` crate
 
 ## Testing
 
