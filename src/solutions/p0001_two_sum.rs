@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(clippy::doc_lazy_continuation)]
 /// Problem: Two Sum
 /// Difficulty: Easy
 /// URL: https://leetcode.com/problems/two-sum/

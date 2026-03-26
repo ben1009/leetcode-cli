@@ -154,14 +154,14 @@ impl LeetCodeClient {
         Ok(self.problems.clone())
     }
 
-    /// Get a problem by its ID.
+    /// Get a problem by its frontend ID (the ID shown on leetcode.com).
     ///
     /// Returns `None` if no problem with the given ID exists.
     pub async fn get_problem_by_id(&self, id: u32) -> Result<Option<Problem>> {
         Ok(self
             .problems
             .iter()
-            .find(|p| p.stat.question_id == id)
+            .find(|p| p.stat.frontend_question_id == id)
             .cloned())
     }
 
@@ -669,6 +669,65 @@ mod tests {
         assert_eq!(problem.as_ref().unwrap().stat.question_id, 1);
 
         let problem = client.get_problem_by_id(999).await.unwrap();
+        assert!(problem.is_none());
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_get_problem_by_frontend_id() {
+        // Test that lookup uses frontend_question_id, not internal question_id
+        // Some problems have different internal IDs vs frontend IDs
+        let (mock_server, config) = setup_mock_server().await;
+
+        let problem_list = serde_json::json!({
+            "user_name": "test_user",
+            "num_solved": 1,
+            "num_total": 1,
+            "ac_easy": 1,
+            "ac_medium": 0,
+            "ac_hard": 0,
+            "stat_status_pairs": [
+                {
+                    "stat": {
+                        "question_id": 100,  // Internal ID is 100
+                        "question__article__live": null,
+                        "question__article__slug": null,
+                        "question__title": "Test Problem",
+                        "question__title_slug": "test-problem",
+                        "question__hide": false,
+                        "total_acs": 1000,
+                        "total_submitted": 2000,
+                        "frontend_question_id": 1,  // But frontend shows ID 1
+                        "is_new_question": false
+                    },
+                    "difficulty": {"level": 1},
+                    "paid_only": false,
+                    "is_favor": false,
+                    "frequency": 0,
+                    "progress": 0,
+                    "status": null
+                }
+            ]
+        });
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(problem_list))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        // Should find problem by frontend_question_id=1, not question_id=100
+        let problem = client.get_problem_by_id(1).await.unwrap();
+        assert!(problem.is_some());
+        assert_eq!(problem.as_ref().unwrap().stat.frontend_question_id, 1);
+        assert_eq!(problem.as_ref().unwrap().stat.question_id, 100);
+
+        // Should NOT find by internal question_id=100
+        let problem = client.get_problem_by_id(100).await.unwrap();
         assert!(problem.is_none());
     }
 
