@@ -93,6 +93,10 @@ pub fn print_submission_result(result: &SubmissionResult) {
             println!("{}", "✗ Wrong Answer".red().bold());
             if let (Some(correct), Some(total)) = (result.total_correct, result.total_testcases) {
                 println!("  Passed {}/{} tests", correct, total);
+                // The failed test case is the one after the last correct test
+                if correct < total {
+                    println!("  Failed at test case {}", correct + 1);
+                }
             }
             if let Some(ref input) = result.input_formatted {
                 println!("  Input: {}", input);
@@ -339,9 +343,9 @@ mod tests {
             expected_output: Some("[0, 1]".to_string()),
             full_runtime_error: None,
             full_compile_error: None,
-            total_correct: Some(50),
-            total_testcases: Some(100),
-            input_formatted: None,
+            total_correct: Some(2),
+            total_testcases: Some(3),
+            input_formatted: Some("[4,1,4,0,3,5]".to_string()),
         };
 
         // Just make sure it doesn't panic

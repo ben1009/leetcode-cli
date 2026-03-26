@@ -35,7 +35,7 @@
 - [x] Add `input_formatted` display for Wrong Answer
 - [x] Add `total_correct/total_testcases` display (e.g., "Passed 10/20 tests")
 - [x] Handle missing status codes: MLE (12), OLE (13), Internal Error (16)
-- [ ] Add test case number display for Wrong Answer
+- [x] Add test case number display for Wrong Answer (shows "Failed at test case N" based on total_correct)
 
 ## Code Duplication
 
