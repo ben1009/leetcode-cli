@@ -30,22 +30,33 @@ pub struct Solution;
 
 impl Solution {
     // Solved by Kimi atomically
-    pub fn sort_array_by_parity_ii(nums: Vec<i32>) -> Vec<i32> {
-        let mut result = vec![0; nums.len()];
-        let mut even_idx = 0;
-        let mut odd_idx = 1;
+    /// In-place solution using two-pointer approach.
+    /// Even pointer starts at index 0, odd pointer starts at index 1.
+    /// When we find a misplaced element at even index (odd number),
+    /// we swap it with a misplaced element at odd index (even number).
+    pub fn sort_array_by_parity_ii(mut nums: Vec<i32>) -> Vec<i32> {
+        let n = nums.len();
+        let mut even_ptr = 0usize; // Points to even indices
+        let mut odd_ptr = 1usize; // Points to odd indices
 
-        for num in nums {
-            if num % 2 == 0 {
-                result[even_idx] = num;
-                even_idx += 2;
-            } else {
-                result[odd_idx] = num;
-                odd_idx += 2;
+        while even_ptr < n && odd_ptr < n {
+            // If even index has even number, it's correct
+            if nums[even_ptr] % 2 == 0 {
+                even_ptr += 2;
+            }
+            // If odd index has odd number, it's correct
+            else if nums[odd_ptr] % 2 == 1 {
+                odd_ptr += 2;
+            }
+            // Both are misplaced: even index has odd, odd index has even
+            else {
+                nums.swap(even_ptr, odd_ptr);
+                even_ptr += 2;
+                odd_ptr += 2;
             }
         }
 
-        result
+        nums
     }
 }
 
