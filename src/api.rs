@@ -315,7 +315,7 @@ impl LeetCodeClient {
 
         let payload = serde_json::json!({
             "lang": "rust",
-            "question_id": problem.stat.question_id.to_string(),
+            "question_id": problem_id.to_string(),
             "typed_code": cleaned_code,
         });
 
