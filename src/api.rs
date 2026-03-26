@@ -341,6 +341,25 @@ impl LeetCodeClient {
         self.poll_submission_result(submission_id).await
     }
 
+    /// Determines if an error is retryable
+    fn is_retryable_error(err: &anyhow::Error) -> bool {
+        let err_str = err.to_string();
+        // Retry only "not ready yet" errors (normal polling)
+        if err_str.contains("submission not ready yet") {
+            return true;
+        }
+        // Retry network errors
+        if err_str.contains("network error") {
+            return true;
+        }
+        // Retry 5xx server errors (they contain "HTTP error: 5")
+        if err_str.contains("HTTP error: 5") {
+            return true;
+        }
+        // Don't retry 4xx client errors, parse errors, or other permanent failures
+        false
+    }
+
     async fn poll_submission_result(&self, submission_id: i64) -> Result<SubmissionResult> {
         let check_url = format!(
             "{}/submissions/detail/{}/check/",
@@ -365,15 +384,30 @@ impl LeetCodeClient {
             let attempt = attempt_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             println!("  Checking result... ({}/{})", attempt + 1, max_attempts);
 
-            let response = self.client.get(&check_url).send().await?;
+            let response = match self.client.get(&check_url).send().await {
+                Ok(r) => r,
+                Err(e) => {
+                    let err = anyhow!("network error: {}", e);
+                    *last_error.lock().unwrap() = Some(err.to_string());
+                    return Err(err);
+                }
+            };
 
-            if !response.status().is_success() {
-                let err = anyhow!("HTTP error: {}", response.status());
+            let status = response.status();
+            if !status.is_success() {
+                let err = anyhow!("HTTP error: {}", status);
                 *last_error.lock().unwrap() = Some(err.to_string());
                 return Err(err);
             }
 
-            let result: serde_json::Value = response.json().await?;
+            let result: serde_json::Value = match response.json().await {
+                Ok(r) => r,
+                Err(e) => {
+                    let err = anyhow!("parse error: failed to parse response: {}", e);
+                    *last_error.lock().unwrap() = Some(err.to_string());
+                    return Err(err);
+                }
+            };
 
             // Check if submission is complete
             if let Some(state) = result.get("state").and_then(|s| s.as_str())
@@ -393,6 +427,7 @@ impl LeetCodeClient {
             Err(anyhow!("submission not ready yet"))
         })
         .retry(backoff)
+        .when(Self::is_retryable_error)
         .await;
 
         result.map_err(|e| {
