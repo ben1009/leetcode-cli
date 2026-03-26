@@ -1030,11 +1030,14 @@ mod tests {
     async fn test_submit_uses_internal_question_id() {
         // Test that submission uses internal question_id, not frontend_question_id
         let mock_server = wiremock::MockServer::start().await;
-        let mut config = Config::default();
-        config.session_cookie = Some("test_session".to_string());
-        config.csrf_token = Some("test_csrf".to_string());
+        let config = Config {
+            session_cookie: Some("test_session".to_string()),
+            csrf_token: Some("test_csrf".to_string()),
+            ..Default::default()
+        };
 
-        // Create a problem list where internal question_id (100) differs from frontend_question_id (1)
+        // Create a problem list where internal question_id (100) differs from frontend_question_id
+        // (1)
         let problem_list = serde_json::json!({
             "user_name": "test_user",
             "num_solved": 1,

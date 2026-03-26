@@ -80,7 +80,9 @@ pub fn print_submission_result(result: &SubmissionResult) {
     match result.status_code {
         10 => {
             println!("{}", "✓ Accepted!".green().bold());
-            if let (Some(runtime), Some(mem)) = (result.runtime_percentile, result.memory_percentile) {
+            if let (Some(runtime), Some(mem)) =
+                (result.runtime_percentile, result.memory_percentile)
+            {
                 println!(
                     "  Runtime: {} ms (faster than {:.1}%)",
                     result.status_runtime, runtime

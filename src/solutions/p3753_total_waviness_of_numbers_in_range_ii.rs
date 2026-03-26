@@ -50,6 +50,7 @@ impl Solution {
             .collect();
 
         // dp[pos][prev][prev2][tight][started] = (count_of_numbers, total_waviness)
+        #[allow(clippy::type_complexity)]
         let mut memo: std::collections::HashMap<(usize, i64, i64, bool, bool), (i64, i64)> =
             std::collections::HashMap::new();
 
@@ -57,6 +58,7 @@ impl Solution {
     }
 
     // Returns (count of valid numbers from this state, total waviness)
+    #[allow(clippy::type_complexity)]
     fn dfs(
         pos: usize,
         prev: i64,  // previous digit (actual value), -1 if not started or no prev
@@ -109,7 +111,15 @@ impl Solution {
                 (-1, -1)
             };
 
-            let (count, waviness) = Self::dfs(pos + 1, new_prev, new_prev2, new_tight, new_started, digits, memo);
+            let (count, waviness) = Self::dfs(
+                pos + 1,
+                new_prev,
+                new_prev2,
+                new_tight,
+                new_started,
+                digits,
+                memo,
+            );
             total_count += count;
             total_waviness += waviness + waviness_here * count;
         }
@@ -186,12 +196,19 @@ mod tests {
     fn test_brute_force_small_ranges() {
         // Verify DP matches brute force for small ranges
         fn brute_waviness(n: i64) -> i64 {
-            if n < 100 { return 0; }
-            let digits: Vec<i64> = n.to_string().chars().map(|c| c.to_digit(10).unwrap() as i64).collect();
+            if n < 100 {
+                return 0;
+            }
+            let digits: Vec<i64> = n
+                .to_string()
+                .chars()
+                .map(|c| c.to_digit(10).unwrap() as i64)
+                .collect();
             let mut count = 0;
-            for i in 1..digits.len()-1 {
-                if (digits[i] > digits[i-1] && digits[i] > digits[i+1]) ||
-                   (digits[i] < digits[i-1] && digits[i] < digits[i+1]) {
+            for i in 1..digits.len() - 1 {
+                if (digits[i] > digits[i - 1] && digits[i] > digits[i + 1])
+                    || (digits[i] < digits[i - 1] && digits[i] < digits[i + 1])
+                {
                     count += 1;
                 }
             }
@@ -205,7 +222,8 @@ mod tests {
         // Test various ranges
         for start in [1, 50, 100, 123, 999].iter() {
             for end in [(*start + 50), (*start + 100), (*start + 200)].iter() {
-                if *end <= 10000 { // Keep brute force manageable
+                if *end <= 10000 {
+                    // Keep brute force manageable
                     let expected = brute_total_waviness(*start, *end);
                     let actual = Solution::total_waviness(*start, *end);
                     assert_eq!(actual, expected, "Mismatch for range [{}, {}]", start, end);
