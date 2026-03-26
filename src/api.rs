@@ -48,8 +48,8 @@ pub struct SubmissionResult {
     pub status_msg: String,
     pub status_runtime: String,
     pub status_memory: String,
-    pub runtime_percentile: f64,
-    pub memory_percentile: f64,
+    pub runtime_percentile: Option<f64>,
+    pub memory_percentile: Option<f64>,
     pub code_output: Option<String>,
     pub expected_output: Option<String>,
     pub full_runtime_error: Option<String>,
@@ -1217,8 +1217,8 @@ mod tests {
         assert_eq!(result.status_msg, "Accepted");
         assert_eq!(result.status_runtime, "4 ms");
         assert_eq!(result.status_memory, "2.1 MB");
-        assert_eq!(result.runtime_percentile, 85.5);
-        assert_eq!(result.memory_percentile, 70.2);
+        assert_eq!(result.runtime_percentile, Some(85.5));
+        assert_eq!(result.memory_percentile, Some(70.2));
     }
 
     #[test]

@@ -80,14 +80,19 @@ pub fn print_submission_result(result: &SubmissionResult) {
     match result.status_code {
         10 => {
             println!("{}", "✓ Accepted!".green().bold());
-            println!(
-                "  Runtime: {} ms (faster than {:.1}%)",
-                result.status_runtime, result.runtime_percentile
-            );
-            println!(
-                "  Memory: {} MB (less than {:.1}%)",
-                result.status_memory, result.memory_percentile
-            );
+            if let (Some(runtime), Some(mem)) = (result.runtime_percentile, result.memory_percentile) {
+                println!(
+                    "  Runtime: {} ms (faster than {:.1}%)",
+                    result.status_runtime, runtime
+                );
+                println!(
+                    "  Memory: {} MB (less than {:.1}%)",
+                    result.status_memory, mem
+                );
+            } else {
+                println!("  Runtime: {}", result.status_runtime);
+                println!("  Memory: {}", result.status_memory);
+            }
         }
         11 => {
             println!("{}", "✗ Wrong Answer".red().bold());
@@ -315,8 +320,8 @@ mod tests {
             status_msg: "Accepted".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "2.1 MB".to_string(),
-            runtime_percentile: 95.5,
-            memory_percentile: 80.0,
+            runtime_percentile: Some(95.5),
+            memory_percentile: Some(80.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
@@ -337,8 +342,8 @@ mod tests {
             status_msg: "Wrong Answer".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "2.1 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: Some("[1, 2]".to_string()),
             expected_output: Some("[0, 1]".to_string()),
             full_runtime_error: None,
@@ -359,8 +364,8 @@ mod tests {
             status_msg: "Compile Error".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
@@ -381,8 +386,8 @@ mod tests {
             status_msg: "Unknown Status".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
@@ -403,8 +408,8 @@ mod tests {
             status_msg: "Memory Limit Exceeded".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
@@ -425,8 +430,8 @@ mod tests {
             status_msg: "Output Limit Exceeded".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
@@ -447,8 +452,8 @@ mod tests {
             status_msg: "Internal Error".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
-            runtime_percentile: 0.0,
-            memory_percentile: 0.0,
+            runtime_percentile: Some(0.0),
+            memory_percentile: Some(0.0),
             code_output: None,
             expected_output: None,
             full_runtime_error: None,
