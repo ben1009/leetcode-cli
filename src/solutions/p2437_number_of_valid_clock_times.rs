@@ -79,22 +79,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_2528_1() {
+    fn test_case_2437_1() {
         assert_eq!(Solution::count_time("?5:00".to_string()), 2);
     }
 
     #[test]
-    fn test_case_2528_2() {
+    fn test_case_2437_2() {
         assert_eq!(Solution::count_time("0?:0?".to_string()), 100);
     }
 
     #[test]
-    fn test_case_2528_3() {
+    fn test_case_2437_3() {
         assert_eq!(Solution::count_time("??:??".to_string()), 1440);
     }
 
     #[test]
-    fn test_case_2528_4() {
+    fn test_case_2437_4() {
         assert_eq!(Solution::count_time("12:00".to_string()), 1);
     }
 }

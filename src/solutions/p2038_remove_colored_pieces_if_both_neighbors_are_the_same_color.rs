@@ -46,18 +46,19 @@ pub struct Solution;
 impl Solution {
     // Solved by Kimi atomically
     pub fn winner_of_game(colors: String) -> bool {
-        let colors = colors.as_bytes();
+        if colors.len() < 3 {
+            return false;
+        }
+
         let mut alice_moves = 0;
         let mut bob_moves = 0;
 
-        let mut i = 1;
-        while i < colors.len() - 1 {
-            if colors[i] == b'A' && colors[i - 1] == b'A' && colors[i + 1] == b'A' {
+        for window in colors.as_bytes().windows(3) {
+            if window == b"AAA" {
                 alice_moves += 1;
-            } else if colors[i] == b'B' && colors[i - 1] == b'B' && colors[i + 1] == b'B' {
+            } else if window == b"BBB" {
                 bob_moves += 1;
             }
-            i += 1;
         }
 
         alice_moves > bob_moves
@@ -69,17 +70,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_2149_1() {
+    fn test_case_2038_1() {
         assert!(Solution::winner_of_game("AAABABB".to_string()));
     }
 
     #[test]
-    fn test_case_2149_2() {
+    fn test_case_2038_2() {
         assert!(!Solution::winner_of_game("AA".to_string()));
     }
 
     #[test]
-    fn test_case_2149_3() {
+    fn test_case_2038_3() {
         assert!(!Solution::winner_of_game("ABBBBBBBAAA".to_string()));
     }
 }

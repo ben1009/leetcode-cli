@@ -65,19 +65,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case_2561_1() {
+    fn test_case_2465_1() {
         let nums = vec![4, 1, 4, 0, 3, 5];
         assert_eq!(Solution::distinct_averages(nums), 2);
     }
 
     #[test]
-    fn test_case_2561_2() {
+    fn test_case_2465_2() {
         let nums = vec![1, 100];
         assert_eq!(Solution::distinct_averages(nums), 1);
     }
 
     #[test]
-    fn test_case_2561_3() {
+    fn test_case_2465_3() {
         let nums = vec![1, 2, 3, 4];
         assert_eq!(Solution::distinct_averages(nums), 1);
     }
