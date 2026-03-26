@@ -91,13 +91,24 @@ pub fn print_submission_result(result: &SubmissionResult) {
         }
         11 => {
             println!("{}", "✗ Wrong Answer".red().bold());
-            println!("  {}", result.status_msg);
+            if let (Some(correct), Some(total)) = (result.total_correct, result.total_testcases) {
+                println!("  Passed {}/{} tests", correct, total);
+            }
+            if let Some(ref input) = result.input_formatted {
+                println!("  Input: {}", input);
+            }
             if let Some(ref output) = result.code_output {
                 println!("  Your output: {}", output);
             }
             if let Some(ref expected) = result.expected_output {
                 println!("  Expected: {}", expected);
             }
+        }
+        12 => {
+            println!("{}", "✗ Memory Limit Exceeded".red().bold());
+        }
+        13 => {
+            println!("{}", "✗ Output Limit Exceeded".red().bold());
         }
         14 => {
             println!("{}", "✗ Time Limit Exceeded".red().bold());
@@ -107,6 +118,10 @@ pub fn print_submission_result(result: &SubmissionResult) {
             if let Some(ref error) = result.full_runtime_error {
                 println!("  {}", error);
             }
+        }
+        16 => {
+            println!("{}", "✗ Internal Error".red().bold());
+            println!("  Please try again later.");
         }
         20 => {
             println!("{}", "✗ Compile Error".red().bold());
@@ -360,6 +375,72 @@ mod tests {
         let result = SubmissionResult {
             status_code: 999,
             status_msg: "Unknown Status".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "0 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: None,
+            total_testcases: None,
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_memory_limit_exceeded() {
+        let result = SubmissionResult {
+            status_code: 12,
+            status_msg: "Memory Limit Exceeded".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "0 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: None,
+            total_testcases: None,
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_output_limit_exceeded() {
+        let result = SubmissionResult {
+            status_code: 13,
+            status_msg: "Output Limit Exceeded".to_string(),
+            status_runtime: "0 ms".to_string(),
+            status_memory: "0 MB".to_string(),
+            runtime_percentile: 0.0,
+            memory_percentile: 0.0,
+            code_output: None,
+            expected_output: None,
+            full_runtime_error: None,
+            full_compile_error: None,
+            total_correct: None,
+            total_testcases: None,
+            input_formatted: None,
+        };
+
+        // Just make sure it doesn't panic
+        print_submission_result(&result);
+    }
+
+    #[test]
+    fn test_print_submission_result_internal_error() {
+        let result = SubmissionResult {
+            status_code: 16,
+            status_msg: "Internal Error".to_string(),
             status_runtime: "0 ms".to_string(),
             status_memory: "0 MB".to_string(),
             runtime_percentile: 0.0,
