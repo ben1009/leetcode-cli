@@ -354,8 +354,8 @@ impl LeetCodeClient {
         let max_attempts = 30;
 
         let backoff = ExponentialBuilder::default()
-            .with_min_delay(std::time::Duration::from_secs(1))
-            .with_max_delay(std::time::Duration::from_secs(8))
+            .with_min_delay(std::time::Duration::from_secs(3))
+            .with_max_delay(std::time::Duration::from_secs(15))
             .with_max_times(max_attempts);
 
         let attempt_counter = std::sync::atomic::AtomicUsize::new(0);
