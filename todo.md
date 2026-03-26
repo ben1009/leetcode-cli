@@ -31,10 +31,10 @@
 
 ## Issue #50: CLI Submission Result Retrieval
 
-- [ ] Increase backoff delays (min: 1s → 3s, max: 8s → 15s)
-- [ ] Add `input_formatted` display for Wrong Answer
-- [ ] Add `total_correct/total_testcases` display (e.g., "Passed 10/20 tests")
-- [ ] Handle missing status codes: MLE (12), OLE (13), Internal Error (16)
+- [x] Increase backoff delays (min: 1s → 3s, max: 8s → 15s)
+- [x] Add `input_formatted` display for Wrong Answer
+- [x] Add `total_correct/total_testcases` display (e.g., "Passed 10/20 tests")
+- [x] Handle missing status codes: MLE (12), OLE (13), Internal Error (16)
 - [ ] Add test case number display for Wrong Answer
 
 ## Code Duplication
