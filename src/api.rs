@@ -1700,4 +1700,133 @@ fn main() {}"#;
         let result = client.get_problem_detail("two-sum").await;
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_wrong_answer_display() {
+        // Test that wrong answer response includes detailed test case info
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return WRONG_ANSWER with detailed test case info
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "state": "SUCCESS",
+                "status_code": 11,
+                "status_msg": "Wrong Answer",
+                "status_runtime": "0 ms",
+                "status_memory": "2.1 MB",
+                "runtime_percentile": null,
+                "memory_percentile": null,
+                "code_output": "[0,1]",
+                "expected_output": "[1,2]",
+                "full_runtime_error": null,
+                "full_compile_error": null,
+                "total_correct": 38,
+                "total_testcases": 63,
+                "input_formatted": "[3,2,4]\n6"
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution { pub fn two_sum() {} }").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert_eq!(result.status_code, 11);
+        assert_eq!(result.status_msg, "Wrong Answer");
+        assert_eq!(result.total_correct, Some(38));
+        assert_eq!(result.total_testcases, Some(63));
+        assert_eq!(result.input_formatted, Some("[3,2,4]\n6".to_string()));
+        assert_eq!(result.code_output, Some("[0,1]".to_string()));
+        assert_eq!(result.expected_output, Some("[1,2]".to_string()));
+    }
+
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "Miri doesn't support TCP sockets")]
+    async fn test_submit_compile_error_display() {
+        // Test that compile error response includes full error message
+        let (mock_server, mut config) = setup_mock_server().await;
+        config.session_cookie = Some("test_session".to_string());
+
+        Mock::given(method("GET"))
+            .and(path("/api/problems/all/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(create_test_problem_list()))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/problems/two-sum/submit/"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"submission_id": 12345i64})),
+            )
+            .mount(&mock_server)
+            .await;
+
+        // Return COMPILE_ERROR with full error details
+        Mock::given(method("GET"))
+            .and(path("/submissions/detail/12345/check/"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "state": "SUCCESS",
+                "status_code": 20,
+                "status_msg": "Compile Error",
+                "status_runtime": "0 ms",
+                "status_memory": "0 MB",
+                "runtime_percentile": null,
+                "memory_percentile": null,
+                "code_output": null,
+                "expected_output": null,
+                "full_runtime_error": null,
+                "full_compile_error": "Line 4: Char 55: error: expected `;`, found keyword `for`\n  |\n4 |         let mut map = std::collections::HashMap::new()\n  |                                                       ^ help: add `;` here",
+                "total_correct": null,
+                "total_testcases": null,
+                "input_formatted": null
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = LeetCodeClient::new_with_base_url(config, mock_server.uri())
+            .await
+            .unwrap();
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let solution_file = temp_dir.path().join("solution.rs");
+        std::fs::write(&solution_file, "impl Solution { pub fn two_sum() {} }").unwrap();
+
+        let result = client.submit(1, &solution_file).await;
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
+        assert_eq!(result.status_code, 20);
+        assert_eq!(result.status_msg, "Compile Error");
+        assert!(result.full_compile_error.is_some());
+        let error = result.full_compile_error.unwrap();
+        assert!(error.contains("expected `;`"));
+        assert!(error.contains("found keyword `for`"));
+    }
 }
