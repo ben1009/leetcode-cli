@@ -57,7 +57,7 @@ pub async fn execute(
 
         println!(
             "{:<6} {:<50} {:<10} {:<10}",
-            problem.stat.question_id,
+            problem.stat.frontend_question_id,
             problem
                 .stat
                 .question_title()

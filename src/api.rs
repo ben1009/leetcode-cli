@@ -154,14 +154,14 @@ impl LeetCodeClient {
         Ok(self.problems.clone())
     }
 
-    /// Get a problem by its ID.
+    /// Get a problem by its frontend ID (the ID shown on leetcode.com).
     ///
     /// Returns `None` if no problem with the given ID exists.
     pub async fn get_problem_by_id(&self, id: u32) -> Result<Option<Problem>> {
         Ok(self
             .problems
             .iter()
-            .find(|p| p.stat.question_id == id)
+            .find(|p| p.stat.frontend_question_id == id)
             .cloned())
     }
 

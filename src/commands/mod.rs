@@ -44,7 +44,7 @@ pub fn print_problem_summary(problem: &Problem) {
     println!(
         "{} {}. {}",
         "✓ Found Problem".bold().green(),
-        problem.stat.question_id,
+        problem.stat.frontend_question_id,
         problem.stat.question_title().bold()
     );
     println!("{}", "═".repeat(80).cyan());

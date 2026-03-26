@@ -20,7 +20,7 @@ pub async fn execute(client: &LeetCodeClient, id: u32) -> Result<()> {
     println!(
         "{} {}. {}",
         "Problem".bold(),
-        problem.stat.question_id,
+        problem.stat.frontend_question_id,
         problem.stat.question_title().bold()
     );
     println!("{}", "═".repeat(80).cyan());

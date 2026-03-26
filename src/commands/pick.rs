@@ -81,7 +81,7 @@ fn add_module_declaration(module_name: &str) -> Result<()> {
 
 /// Download problem to local workspace
 async fn download_problem(client: &LeetCodeClient, problem: &Problem) -> Result<()> {
-    let id = problem.stat.question_id;
+    let id = problem.stat.frontend_question_id;
     println!("{}", format!("Downloading problem {id}...").cyan());
 
     let detail = client

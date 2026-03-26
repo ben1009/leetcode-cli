@@ -1,0 +1,64 @@
+#![allow(dead_code)]
+#![allow(clippy::doc_lazy_continuation)]
+
+/// Problem: Best Time to Buy and Sell Stock
+/// Difficulty: Easy
+/// URL: https://leetcode.com/problems/best-time-to-buy-and-sell-stock/
+///
+/// You are given an array `prices` where `prices[i]` is the price of a given stock on the `i^th`
+/// day. You want to maximize your profit by choosing a **single day** to buy one stock and choosing
+/// a **different day in the future** to sell that stock. Return *the maximum profit you can achieve
+/// from this transaction*. If you cannot achieve any profit, return `0`. **Example 1:**
+/// '''
+/// **Input:** prices = [7,1,5,3,6,4] **Output:** 5 **Explanation:** Buy on day 2 (price = 1) and
+/// sell on day 5 (price = 6), profit = 6-1 = 5. Note that buying on day 2 and selling on day 1 is
+/// not allowed because you must buy before you sell. '''
+/// **Example 2:**
+/// '''
+/// **Input:** prices = [7,6,4,3,1] **Output:** 0 **Explanation:** In this case, no transactions are
+/// done and the max profit = 0. '''
+/// **Constraints:**
+/// - `1 <= prices.length <= 10^5`
+/// - `0 <= prices[i] <= 10^4`
+pub struct Solution;
+
+impl Solution {
+    // Solved by Kimi atomically
+    pub fn max_profit(prices: Vec<i32>) -> i32 {
+        let mut min_price = i32::MAX;
+        let mut max_profit = 0;
+
+        for price in prices {
+            if price < min_price {
+                min_price = price;
+            } else if price - min_price > max_profit {
+                max_profit = price - min_price;
+            }
+        }
+
+        max_profit
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_case_0121_1() {
+        let prices = vec![7, 1, 5, 3, 6, 4];
+        assert_eq!(Solution::max_profit(prices), 5);
+    }
+
+    #[test]
+    fn test_case_0121_2() {
+        let prices = vec![7, 6, 4, 3, 1];
+        assert_eq!(Solution::max_profit(prices), 0);
+    }
+
+    #[test]
+    fn test_case_0121_3() {
+        let prices = vec![1, 2];
+        assert_eq!(Solution::max_profit(prices), 1);
+    }
+}
