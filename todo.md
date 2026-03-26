@@ -29,13 +29,20 @@
 
 - [x] Fix URL typo in `template.rs:113`: `https://leetcode/problems/` → `https://leetcode.com/problems/`
 
-## Issue #50: CLI Submission Result Retrieval
+## Issue #50: CLI Submission Result Retrieval ✅ COMPLETE
 
+**Status:** Fixed via PR #52 (merged to main)
+
+### Fixes Applied:
+- [x] Use internal `question_id` instead of `frontend_question_id` for submission API
 - [x] Increase backoff delays (min: 1s → 3s, max: 8s → 15s)
 - [x] Add `input_formatted` display for Wrong Answer
 - [x] Add `total_correct/total_testcases` display (e.g., "Passed 10/20 tests")
 - [x] Handle missing status codes: MLE (12), OLE (13), Internal Error (16)
-- [x] Add test case number display for Wrong Answer (shows "Failed at test case N" based on total_correct)
+- [x] Add test case number display for Wrong Answer (shows "Failed at test case N")
+- [x] Smart retry logic - only retry retryable errors (PENDING, network, 5xx)
+- [x] Handle null percentile values in submission results
+- [x] Add comprehensive tests for wrong answer and compile error display
 
 ## Code Duplication
 
