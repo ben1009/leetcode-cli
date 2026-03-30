@@ -193,10 +193,35 @@ edition = "2021"
         let clean_content = self.problem.clean_content();
         // Replace code block markers with text markers to avoid doctest issues
         let clean_content = clean_content.replace("```", "'''");
+        let mut prev_was_list_item = false;
         for line in clean_content.lines() {
             let trimmed = line.trim();
             if !trimmed.is_empty() {
-                doc.push_str(&format!("/// {}\n", trimmed));
+                // Check if current line is a list item (starts with "- ")
+                let is_list_item = trimmed.starts_with("- ");
+
+                // If previous line was a list item and current line is NOT a list item
+                // or list continuation, we need a blank line to break the list context.
+                // This prevents clippy::doc_lazy_continuation lint errors.
+                if prev_was_list_item
+                    && !is_list_item
+                    && !line.starts_with(' ')
+                    && !line.starts_with('\t')
+                {
+                    doc.push_str("///\n");
+                }
+
+                // For list continuations (lines that were originally indented),
+                // we need to preserve the indentation to avoid doc_lazy_continuation lint.
+                // Check if original line starts with whitespace (indicating list continuation)
+                let is_continuation = line.starts_with(' ') || line.starts_with('\t');
+                if is_continuation {
+                    doc.push_str(&format!("///   {}\n", trimmed));
+                } else {
+                    doc.push_str(&format!("/// {}\n", trimmed));
+                }
+
+                prev_was_list_item = is_list_item;
             }
         }
 
@@ -385,5 +410,52 @@ mod tests {
 
         assert!(default.contains("struct Solution"));
         assert!(default.contains("#[cfg(test)]"));
+    }
+
+    /// Test that doc comments add blank lines after list items when followed by
+    /// non-list content. This fixes the clippy::doc_lazy_continuation lint error.
+    #[test]
+    fn test_doc_comment_list_continuation_indentation() {
+        // Create a problem with content that has a list item followed by a paragraph.
+        // Simulates HTML like: <ul><li>-2^31 <= x <= 2^31 - 1</li></ul><p><strong>Follow
+        // up:</strong>...</p>
+        let problem = ProblemDetail {
+            question_id: "9".to_string(),
+            title: "Palindrome Number".to_string(),
+            title_slug: "palindrome-number".to_string(),
+            // Content that has a list item followed by a separate paragraph
+            content: "<p>Given an integer <code>x</code></p><ul><li><code>-2<sup>31</sup> &lt;= x &lt;= 2<sup>31</sup> - 1</code></li></ul><p><strong>Follow up:</strong> Could you solve it without converting the integer to a string?</p>".to_string(),
+            difficulty: "Easy".to_string(),
+            example_testcases: Some("121".to_string()),
+            sample_test_case: None,
+            meta_data: None,
+            code_snippets: Some(vec![crate::problem::CodeSnippet {
+                lang: "Rust".to_string(),
+                lang_slug: "rust".to_string(),
+                code: "impl Solution {\n    pub fn is_palindrome(x: i32) -> bool {\n        \n    }\n}".to_string(),
+            }]),
+            hints: None,
+            topic_tags: None,
+        };
+
+        let template = CodeTemplate::new(&problem);
+        let rust_code = template.generate_rust_template();
+
+        // Verify the code contains the expected content
+        assert!(rust_code.contains("Palindrome Number"));
+        assert!(rust_code.contains("is_palindrome"));
+
+        // The key assertion: check that there's a blank doc comment line (/// followed by newline)
+        // between the list item and the following paragraph to satisfy
+        // clippy::doc_lazy_continuation. The pattern "- `-2^31" should be followed by
+        // "///\n/// **Follow up:**"
+        assert!(
+            rust_code.contains("- `-2^31"),
+            "Should contain the list item"
+        );
+        assert!(
+            rust_code.contains("///\n/// **Follow up:**"),
+            "There should be a blank doc comment line between list item and following paragraph to satisfy clippy::doc_lazy_continuation"
+        );
     }
 }
