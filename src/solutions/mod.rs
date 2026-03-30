@@ -7,6 +7,7 @@ pub mod p0002_add_two_numbers;
 pub mod p0003_longest_substring_without_repeating_characters;
 pub mod p0005_longest_palindromic_substring;
 pub mod p0007_reverse_integer;
+pub mod p0009_palindrome_number;
 pub mod p0099_recover_binary_search_tree;
 pub mod p0121_best_time_to_buy_and_sell_stock;
 pub mod p0452_minimum_number_of_arrows_to_burst_balloons;
