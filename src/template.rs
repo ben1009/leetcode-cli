@@ -203,18 +203,15 @@ edition = "2021"
                 // If previous line was a list item and current line is NOT a list item
                 // or list continuation, we need a blank line to break the list context.
                 // This prevents clippy::doc_lazy_continuation lint errors.
-                if prev_was_list_item
-                    && !is_list_item
-                    && !line.starts_with(' ')
-                    && !line.starts_with('\t')
-                {
+                let starts_with_whitespace = line.chars().next().is_some_and(|c| c.is_whitespace());
+                if prev_was_list_item && !is_list_item && !starts_with_whitespace {
                     doc.push_str("///\n");
                 }
 
                 // For list continuations (lines that were originally indented),
                 // we need to preserve the indentation to avoid doc_lazy_continuation lint.
                 // Check if original line starts with whitespace (indicating list continuation)
-                let is_continuation = line.starts_with(' ') || line.starts_with('\t');
+                let is_continuation = starts_with_whitespace;
                 if is_continuation {
                     doc.push_str(&format!("///   {}\n", trimmed));
                 } else {
